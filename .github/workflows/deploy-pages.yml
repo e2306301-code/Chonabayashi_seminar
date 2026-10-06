@@ -1,0 +1,64 @@
+name: GitHub Pagesへ公開
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: ソースコードを取得
+        uses: actions/checkout@v4
+
+      - name: pnpmを準備
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Node.jsを準備
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: パッケージをインストール
+        run: pnpm install --frozen-lockfile
+
+      - name: テスト
+        run: pnpm test
+
+      - name: アプリをビルド
+        env:
+          VITE_FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.FIREBASE_APP_ID }}
+        run: pnpm build
+
+      - name: Pagesを準備
+        uses: actions/configure-pages@v5
+
+      - name: 公開ファイルをアップロード
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: GitHub Pagesへ公開
+        id: deployment
+        uses: actions/deploy-pages@v4

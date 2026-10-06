@@ -1,0 +1,19 @@
+{
+  "name": "ちょなちょナゲット 注文受付",
+  "short_name": "ちょなちょ注文",
+  "description": "学祭ナゲット店の店頭注文・注文管理アプリ",
+  "start_url": "/Chonabayashi_seminar/#/",
+  "scope": "/Chonabayashi_seminar/",
+  "display": "standalone",
+  "background_color": "#fffaf0",
+  "theme_color": "#ffca3a",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "/Chonabayashi_seminar/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

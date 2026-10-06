@@ -4,6 +4,7 @@ import { signIn, signOut, observeSession } from './firebase/auth'
 import { isFirebaseConfigured } from './firebase/client'
 import {
   createOrder,
+  deleteOrderHistory,
   ensureStoreInitialized,
   observeOrderHistory,
   observeSlots,
@@ -107,6 +108,7 @@ export default function App() {
           history={history}
           onMenuDayChange={setActiveMenuDay}
           onTransition={transitionOrder}
+          onDeleteHistory={deleteOrderHistory}
           onSignOut={() => void signOut()}
         />
       ) : (

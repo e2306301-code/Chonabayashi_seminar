@@ -99,7 +99,8 @@ service cloud.firestore {
         && request.resource.data.totalPieces == resource.data.totalPieces
         && request.resource.data.totalAmount == resource.data.totalAmount
         && request.resource.data.status in ['cooking', 'ready', 'completed', 'cancelled'];
-      allow delete: if false;
+      allow delete: if isAdmin()
+        && resource.data.status in ['completed', 'cancelled'];
     }
   }
 }

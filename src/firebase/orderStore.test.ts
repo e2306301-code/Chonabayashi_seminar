@@ -50,8 +50,10 @@ describe('getNextTicketNumber', () => {
 describe('isAllowedTransition', () => {
   it.each([
     ['received', 'cooking'],
+    ['received', 'completed'],
     ['received', 'cancelled'],
     ['cooking', 'ready'],
+    ['cooking', 'completed'],
     ['cooking', 'cancelled'],
     ['ready', 'completed'],
     ['ready', 'cancelled'],
@@ -61,8 +63,6 @@ describe('isAllowedTransition', () => {
 
   it.each([
     ['received', 'ready'],
-    ['received', 'completed'],
-    ['cooking', 'completed'],
     ['ready', 'cooking'],
   ] as const)('rejects %s to become %s', (from, to) => {
     expect(isAllowedTransition(from, to)).toBe(false)

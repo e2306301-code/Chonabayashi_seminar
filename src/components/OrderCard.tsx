@@ -1,7 +1,6 @@
 import { getFlavor } from '../domain/menu'
 import {
   ORDER_STATUS_LABELS,
-  type ActiveOrderStatus,
   type OrderStatus,
   type SlotRecord,
 } from '../firebase/types'
@@ -10,27 +9,6 @@ interface OrderCardProps {
   slot: SlotRecord
   busy?: boolean
   onTransition: (nextStatus: OrderStatus) => void
-}
-
-const NEXT_ACTION: Record<
-  ActiveOrderStatus,
-  { status: OrderStatus; label: string; aria: (ticket: number) => string }
-> = {
-  received: {
-    status: 'cooking',
-    label: '調理を開始',
-    aria: (ticket) => `${ticket}番の調理を開始`,
-  },
-  cooking: {
-    status: 'ready',
-    label: '受け渡し待ちへ',
-    aria: (ticket) => `${ticket}番を受け渡し待ちにする`,
-  },
-  ready: {
-    status: 'completed',
-    label: '受け取り完了',
-    aria: (ticket) => `${ticket}番の受け取りを完了`,
-  },
 }
 
 export function OrderCard({ slot, busy = false, onTransition }: OrderCardProps) {
@@ -47,7 +25,6 @@ export function OrderCard({ slot, busy = false, onTransition }: OrderCardProps) 
     )
   }
 
-  const action = NEXT_ACTION[slot.state]
   const acceptedTime = formatOrderTime(slot.createdAt)
   return (
     <article
@@ -84,11 +61,11 @@ export function OrderCard({ slot, busy = false, onTransition }: OrderCardProps) 
         <button
           type="button"
           className="button button--primary"
-          aria-label={action.aria(slot.ticketNumber)}
+          aria-label={`${slot.ticketNumber}番の受け取りを完了`}
           disabled={busy}
-          onClick={() => onTransition(action.status)}
+          onClick={() => onTransition('completed')}
         >
-          {action.label}
+          受け取り完了
         </button>
         <button
           type="button"

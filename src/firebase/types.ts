@@ -10,6 +10,7 @@ export type StoreAction =
   | 'create-order'
   | 'change-menu'
   | 'transition-order'
+  | 'delete-history'
   | 'initialize-store'
 
 const ROLE_ACTIONS: Record<UserRole, readonly StoreAction[]> = {
@@ -20,6 +21,7 @@ const ROLE_ACTIONS: Record<UserRole, readonly StoreAction[]> = {
     'read-orders',
     'change-menu',
     'transition-order',
+    'delete-history',
     'initialize-store',
   ],
 }

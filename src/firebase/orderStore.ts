@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -63,8 +64,8 @@ const ALLOWED_TRANSITIONS: Record<
   ActiveOrderStatus,
   readonly OrderStatus[]
 > = {
-  received: ['cooking', 'cancelled'],
-  cooking: ['ready', 'cancelled'],
+  received: ['cooking', 'completed', 'cancelled'],
+  cooking: ['ready', 'completed', 'cancelled'],
   ready: ['completed', 'cancelled'],
 }
 
@@ -228,6 +229,11 @@ export async function transitionOrder(
       transaction.update(slotRef, { state: nextStatus })
     }
   })
+}
+
+export async function deleteOrderHistory(orderId: string): Promise<void> {
+  const { db } = getFirebaseServices()
+  await deleteDoc(doc(db, 'orders', orderId))
 }
 
 export async function setActiveMenuDay(day: MenuDay): Promise<void> {

@@ -38,6 +38,7 @@ describe('AdminScreen', () => {
         slots={slots}
         onMenuDayChange={vi.fn()}
         onTransition={vi.fn()}
+        onDeleteHistory={vi.fn()}
         onSignOut={vi.fn()}
       />,
     )
@@ -58,7 +59,7 @@ describe('AdminScreen', () => {
     expect(screen.getByText('7', { selector: '.admin-summary strong' })).toBeInTheDocument()
   })
 
-  it('provides the correct next action for each active state', async () => {
+  it('offers only completion and cancellation for every active order', async () => {
     const user = userEvent.setup()
     const onTransition = vi.fn().mockResolvedValue(undefined)
     render(
@@ -67,16 +68,18 @@ describe('AdminScreen', () => {
         slots={slots}
         onMenuDayChange={vi.fn()}
         onTransition={onTransition}
+        onDeleteHistory={vi.fn()}
         onSignOut={vi.fn()}
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: '1番の調理を開始' }))
-    await user.click(screen.getByRole('button', { name: '2番を受け渡し待ちにする' }))
+    expect(screen.queryByRole('button', { name: /(?:調理を開始|受け渡し待ちにする)/ })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '1番の受け取りを完了' }))
+    await user.click(screen.getByRole('button', { name: '2番の注文を取り消す' }))
     await user.click(screen.getByRole('button', { name: '3番の受け取りを完了' }))
 
-    expect(onTransition).toHaveBeenNthCalledWith(1, 1, 'cooking')
-    expect(onTransition).toHaveBeenNthCalledWith(2, 2, 'ready')
+    expect(onTransition).toHaveBeenNthCalledWith(1, 1, 'completed')
+    expect(onTransition).toHaveBeenNthCalledWith(2, 2, 'cancelled')
     expect(onTransition).toHaveBeenNthCalledWith(3, 3, 'completed')
   })
 
@@ -89,6 +92,7 @@ describe('AdminScreen', () => {
         slots={slots}
         onMenuDayChange={onMenuDayChange}
         onTransition={vi.fn()}
+        onDeleteHistory={vi.fn()}
         onSignOut={vi.fn()}
       />,
     )
@@ -97,7 +101,10 @@ describe('AdminScreen', () => {
     expect(onMenuDayChange).toHaveBeenCalledWith('day12')
   })
 
-  it('shows only the selected day in the daily history', () => {
+  it('shows only the selected day in the daily history and deletes one confirmed record', async () => {
+    const user = userEvent.setup()
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const onDeleteHistory = vi.fn().mockResolvedValue(undefined)
     const history: OrderRecord[] = [
       {
         id: 'day11-order',
@@ -143,6 +150,7 @@ describe('AdminScreen', () => {
         history={history}
         onMenuDayChange={vi.fn()}
         onTransition={vi.fn()}
+        onDeleteHistory={onDeleteHistory}
         onSignOut={vi.fn()}
       />,
     )
@@ -150,5 +158,9 @@ describe('AdminScreen', () => {
     expect(screen.getByText('600円')).toBeInTheDocument()
     expect(screen.queryByText('1,200円')).not.toBeInTheDocument()
     expect(screen.queryByText('1,500円')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '受付番号1の履歴を削除' }))
+    expect(confirm).toHaveBeenCalledWith('受付番号1の注文履歴を削除しますか？')
+    expect(onDeleteHistory).toHaveBeenCalledWith('day11-order')
+    confirm.mockRestore()
   })
 })

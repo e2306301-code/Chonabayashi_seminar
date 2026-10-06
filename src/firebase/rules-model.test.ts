@@ -13,6 +13,7 @@ describe('authorization model mirrored by Firestore rules', () => {
   it.each<StoreAction>([
     'change-menu',
     'transition-order',
+    'delete-history',
     'initialize-store',
   ])('does not allow a kiosk to %s', (action) => {
     expect(canPerform('kiosk', action)).toBe(false)
@@ -25,6 +26,7 @@ describe('authorization model mirrored by Firestore rules', () => {
       'read-orders',
       'change-menu',
       'transition-order',
+      'delete-history',
       'initialize-store',
     ]
     expect(actions.every((action) => canPerform('admin', action))).toBe(true)
@@ -42,6 +44,7 @@ describe('authorization model mirrored by Firestore rules', () => {
       'create-order',
       'change-menu',
       'transition-order',
+      'delete-history',
       'initialize-store',
     ]
     expect(actions.some((action) => canPerform(null, action))).toBe(false)

@@ -15,6 +15,7 @@ interface AdminScreenProps {
   history?: OrderRecord[]
   onMenuDayChange: (day: MenuDay) => Promise<void>
   onTransition: (ticketNumber: TicketNumber, status: OrderStatus) => Promise<void>
+  onDeleteHistory: (orderId: string) => Promise<void>
   onSignOut: () => void
 }
 
@@ -24,9 +25,11 @@ export function AdminScreen({
   history = [],
   onMenuDayChange,
   onTransition,
+  onDeleteHistory,
   onSignOut,
 }: AdminScreenProps) {
   const [busyTickets, setBusyTickets] = useState<Set<TicketNumber>>(new Set())
+  const [busyHistoryIds, setBusyHistoryIds] = useState<Set<string>>(new Set())
   const [error, setError] = useState('')
   const activeCount = slots.filter((slot) => slot.state !== 'available').length
   const dailyHistory = history.filter(
@@ -47,6 +50,28 @@ export function AdminScreen({
       setBusyTickets((current) => {
         const next = new Set(current)
         next.delete(ticketNumber)
+        return next
+      })
+    }
+  }
+
+  async function handleDeleteHistory(order: OrderRecord) {
+    if (
+      busyHistoryIds.has(order.id) ||
+      !window.confirm(`受付番号${order.ticketNumber}の注文履歴を削除しますか？`)
+    ) {
+      return
+    }
+    setBusyHistoryIds((current) => new Set(current).add(order.id))
+    setError('')
+    try {
+      await onDeleteHistory(order.id)
+    } catch {
+      setError('注文履歴を削除できませんでした。通信を確認してください。')
+    } finally {
+      setBusyHistoryIds((current) => {
+        const next = new Set(current)
+        next.delete(order.id)
         return next
       })
     }
@@ -111,7 +136,7 @@ export function AdminScreen({
         ) : (
           <div className="history-table-wrap">
             <table>
-              <thead><tr><th>番号</th><th>状態</th><th>カップ</th><th>金額</th></tr></thead>
+              <thead><tr><th>番号</th><th>状態</th><th>カップ</th><th>金額</th><th>操作</th></tr></thead>
               <tbody>
                 {dailyHistory.map((order) => (
                   <tr key={order.id}>
@@ -119,6 +144,17 @@ export function AdminScreen({
                     <td>{order.status === 'completed' ? '完了' : order.status === 'cancelled' ? '取消' : '受付中'}</td>
                     <td>{order.totalCups}</td>
                     <td>{order.totalAmount.toLocaleString('ja-JP')}円</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="history-delete-button"
+                        aria-label={`受付番号${order.ticketNumber}の履歴を削除`}
+                        disabled={busyHistoryIds.has(order.id)}
+                        onClick={() => void handleDeleteHistory(order)}
+                      >
+                        削除
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

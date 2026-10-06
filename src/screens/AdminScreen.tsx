@@ -23,6 +23,11 @@ export function AdminScreen({
   const [busyTickets, setBusyTickets] = useState<Set<TicketNumber>>(new Set())
   const [error, setError] = useState('')
   const activeCount = slots.filter((slot) => slot.state !== 'available').length
+  const dailyHistory = history.filter(
+    (order) =>
+      order.menuDay === menuDay &&
+      (order.status === 'completed' || order.status === 'cancelled'),
+  )
 
   async function handleTransition(ticketNumber: TicketNumber, status: OrderStatus) {
     if (busyTickets.has(ticketNumber)) return
@@ -95,14 +100,14 @@ export function AdminScreen({
 
       <details className="history-panel">
         <summary>本日の注文履歴（最新50件）</summary>
-        {history.length === 0 ? (
+        {dailyHistory.length === 0 ? (
           <p>履歴はまだありません。</p>
         ) : (
           <div className="history-table-wrap">
             <table>
               <thead><tr><th>番号</th><th>状態</th><th>カップ</th><th>金額</th></tr></thead>
               <tbody>
-                {history.map((order) => (
+                {dailyHistory.map((order) => (
                   <tr key={order.id}>
                     <td>{order.ticketNumber}</td>
                     <td>{order.status === 'completed' ? '完了' : order.status === 'cancelled' ? '取消' : '受付中'}</td>

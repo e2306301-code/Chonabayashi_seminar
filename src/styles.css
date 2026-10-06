@@ -102,6 +102,7 @@ button { touch-action: manipulation; }
 .order-card__eyebrow { display: block; font-size: .72rem; color: #8b6947; font-weight: 700; }
 .order-card__number { font-size: 2.4rem; line-height: 1; }
 .status-chip { padding: 7px 10px; border-radius: 999px; background: #f0ece7; font-size: .78rem; font-weight: 900; white-space: nowrap; }
+.order-card__time { margin: 10px 0 0; color: #8b6947; font-size: .82rem; font-weight: 800; }
 .order-items { list-style: none; padding: 0; margin: 18px 0; flex: 1; }
 .order-items li { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid #eee5db; font-size: .9rem; }
 .order-items li strong { white-space: nowrap; }

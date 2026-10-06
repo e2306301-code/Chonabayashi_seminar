@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   limit,
   onSnapshot,
@@ -236,21 +237,39 @@ export async function setActiveMenuDay(day: MenuDay): Promise<void> {
 export async function ensureStoreInitialized(
   db: Firestore = getFirebaseServices().db,
 ): Promise<void> {
-  const slotsSnapshot = await getDocs(collection(db, 'slots'))
-  const existing = new Set(slotsSnapshot.docs.map((slot) => slot.id))
-  await Promise.all([
-    setDoc(
-      doc(db, 'config', 'store'),
-      { activeMenuDay: 'day11' satisfies MenuDay },
-      { merge: true },
-    ),
-    ...([1, 2, 3, 4, 5] as const)
-      .filter((ticketNumber) => !existing.has(String(ticketNumber)))
-      .map((ticketNumber) =>
-        setDoc(doc(db, 'slots', String(ticketNumber)), {
-          ticketNumber,
-          state: 'available',
-        }),
-      ),
+  const [slotsSnapshot, configSnapshot] = await Promise.all([
+    getDocs(collection(db, 'slots')),
+    getDoc(doc(db, 'config', 'store')),
   ])
+  const plan = getStoreInitializationPlan(
+    slotsSnapshot.docs.map((slot) => slot.id),
+    configSnapshot.exists(),
+  )
+  const writes: Promise<void>[] = plan.missingTickets.map((ticketNumber) =>
+    setDoc(doc(db, 'slots', String(ticketNumber)), {
+      ticketNumber,
+      state: 'available',
+    }),
+  )
+  if (plan.initializeConfig) {
+    writes.push(
+      setDoc(doc(db, 'config', 'store'), {
+        activeMenuDay: 'day11' satisfies MenuDay,
+      }),
+    )
+  }
+  await Promise.all(writes)
+}
+
+export function getStoreInitializationPlan(
+  existingSlotIds: readonly string[],
+  configExists: boolean,
+): { initializeConfig: boolean; missingTickets: TicketNumber[] } {
+  const existing = new Set(existingSlotIds)
+  return {
+    initializeConfig: !configExists,
+    missingTickets: ([1, 2, 3, 4, 5] as const).filter(
+      (ticketNumber) => !existing.has(String(ticketNumber)),
+    ),
+  }
 }

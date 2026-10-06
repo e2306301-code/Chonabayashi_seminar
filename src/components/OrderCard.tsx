@@ -48,6 +48,7 @@ export function OrderCard({ slot, busy = false, onTransition }: OrderCardProps) 
   }
 
   const action = NEXT_ACTION[slot.state]
+  const acceptedTime = formatOrderTime(slot.createdAt)
   return (
     <article
       className={`order-card order-card--${slot.state}`}
@@ -60,6 +61,8 @@ export function OrderCard({ slot, busy = false, onTransition }: OrderCardProps) 
         </div>
         <span className="status-chip">{ORDER_STATUS_LABELS[slot.state]}</span>
       </header>
+
+      {acceptedTime && <p className="order-card__time">受付 {acceptedTime}</p>}
 
       <ul className="order-items">
         {(slot.items ?? []).map((item) => (
@@ -99,4 +102,25 @@ export function OrderCard({ slot, busy = false, onTransition }: OrderCardProps) 
       </div>
     </article>
   )
+}
+
+function formatOrderTime(value: unknown): string | null {
+  let date: Date | null = null
+  if (value instanceof Date) {
+    date = value
+  } else if (
+    typeof value === 'object' &&
+    value !== null &&
+    'toDate' in value &&
+    typeof value.toDate === 'function'
+  ) {
+    date = value.toDate() as Date
+  }
+  if (!date || Number.isNaN(date.getTime())) return null
+  return new Intl.DateTimeFormat('ja-JP', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Tokyo',
+  }).format(date)
 }

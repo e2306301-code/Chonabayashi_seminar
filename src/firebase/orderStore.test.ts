@@ -3,6 +3,7 @@ import {
   FullCapacityError,
   createOrder,
   getNextTicketNumber,
+  getStoreInitializationPlan,
   isAllowedTransition,
   type OrderPersistence,
 } from './orderStore'
@@ -111,5 +112,21 @@ describe('createOrder', () => {
         persistence,
       ),
     ).rejects.toThrow('network unavailable')
+  })
+})
+
+describe('getStoreInitializationPlan', () => {
+  it('keeps an existing active menu setting when an administrator logs in again', () => {
+    expect(getStoreInitializationPlan(['1', '2', '3', '4', '5'], true)).toEqual({
+      initializeConfig: false,
+      missingTickets: [],
+    })
+  })
+
+  it('initializes only missing ticket slots and a missing config', () => {
+    expect(getStoreInitializationPlan(['1', '3'], false)).toEqual({
+      initializeConfig: true,
+      missingTickets: [2, 4, 5],
+    })
   })
 })

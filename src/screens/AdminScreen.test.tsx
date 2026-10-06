@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { AdminScreen } from './AdminScreen'
-import type { SlotRecord } from '../firebase/types'
+import type { OrderRecord, SlotRecord } from '../firebase/types'
 
 const slots: SlotRecord[] = [
   {
@@ -17,6 +17,7 @@ const slots: SlotRecord[] = [
     totalCups: 3,
     totalPieces: 12,
     totalAmount: 900,
+    createdAt: { toDate: () => new Date('2026-10-11T01:15:00.000Z') },
   },
   { ticketNumber: 2, state: 'cooking', orderId: 'order-2', items: [], totalCups: 1, totalPieces: 4, totalAmount: 300 },
   { ticketNumber: 3, state: 'ready', orderId: 'order-3', items: [], totalCups: 1, totalPieces: 4, totalAmount: 300 },
@@ -46,6 +47,7 @@ describe('AdminScreen', () => {
     expect(within(firstOrder).getByText('× 1カップ')).toBeInTheDocument()
     expect(within(firstOrder).getByText('合計 3カップ・12個')).toBeInTheDocument()
     expect(within(firstOrder).getByText('900円')).toBeInTheDocument()
+    expect(within(firstOrder).getByText('受付 10:15')).toBeInTheDocument()
     expect(screen.getAllByText('空き')).toHaveLength(2)
   })
 
@@ -86,5 +88,60 @@ describe('AdminScreen', () => {
 
     await user.click(screen.getByRole('button', { name: '10月12日のメニューに切り替える' }))
     expect(onMenuDayChange).toHaveBeenCalledWith('day12')
+  })
+
+  it('shows only the selected day in the daily history', () => {
+    const history: OrderRecord[] = [
+      {
+        id: 'day11-order',
+        ticketNumber: 1,
+        menuDay: 'day11',
+        items: [],
+        status: 'completed',
+        totalCups: 2,
+        totalPieces: 8,
+        totalAmount: 600,
+        createdAt: null,
+        updatedAt: null,
+      },
+      {
+        id: 'day12-order',
+        ticketNumber: 2,
+        menuDay: 'day12',
+        items: [],
+        status: 'completed',
+        totalCups: 4,
+        totalPieces: 16,
+        totalAmount: 1200,
+        createdAt: null,
+        updatedAt: null,
+      },
+      {
+        id: 'active-day11-order',
+        ticketNumber: 3,
+        menuDay: 'day11',
+        items: [],
+        status: 'cooking',
+        totalCups: 5,
+        totalPieces: 20,
+        totalAmount: 1500,
+        createdAt: null,
+        updatedAt: null,
+      },
+    ]
+    render(
+      <AdminScreen
+        menuDay="day11"
+        slots={slots}
+        history={history}
+        onMenuDayChange={vi.fn()}
+        onTransition={vi.fn()}
+        onSignOut={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('600円')).toBeInTheDocument()
+    expect(screen.queryByText('1,200円')).not.toBeInTheDocument()
+    expect(screen.queryByText('1,500円')).not.toBeInTheDocument()
   })
 })

@@ -23,10 +23,15 @@ const slots: SlotRecord[] = [
   { ticketNumber: 3, state: 'ready', orderId: 'order-3', items: [], totalCups: 1, totalPieces: 4, totalAmount: 300 },
   { ticketNumber: 4, state: 'available' },
   { ticketNumber: 5, state: 'available' },
+  { ticketNumber: 6, state: 'available' },
+  { ticketNumber: 7, state: 'available' },
+  { ticketNumber: 8, state: 'available' },
+  { ticketNumber: 9, state: 'available' },
+  { ticketNumber: 10, state: 'available' },
 ]
 
 describe('AdminScreen', () => {
-  it('shows all five ticket slots and the complete order details', () => {
+  it('shows all ten ticket slots and the complete order details', () => {
     render(
       <AdminScreen
         menuDay="day11"
@@ -38,8 +43,9 @@ describe('AdminScreen', () => {
     )
 
     expect(
-      screen.getAllByRole('article', { name: /^受付番号 [1-5]$/ }),
-    ).toHaveLength(5)
+      screen.getAllByRole('article', { name: /^受付番号 (?:[1-9]|10)$/ }),
+    ).toHaveLength(10)
+    expect(screen.getByRole('heading', { name: '受付番号 1〜10' })).toBeInTheDocument()
     const firstOrder = screen.getByRole('article', { name: '受付番号 1' })
     expect(within(firstOrder).getByText('塩レモン')).toBeInTheDocument()
     expect(within(firstOrder).getByText('× 2カップ')).toBeInTheDocument()
@@ -48,7 +54,8 @@ describe('AdminScreen', () => {
     expect(within(firstOrder).getByText('合計 3カップ・12個')).toBeInTheDocument()
     expect(within(firstOrder).getByText('900円')).toBeInTheDocument()
     expect(within(firstOrder).getByText('受付 10:15')).toBeInTheDocument()
-    expect(screen.getAllByText('空き')).toHaveLength(2)
+    expect(screen.getAllByText('空き')).toHaveLength(7)
+    expect(screen.getByText('7', { selector: '.admin-summary strong' })).toBeInTheDocument()
   })
 
   it('provides the correct next action for each active state', async () => {

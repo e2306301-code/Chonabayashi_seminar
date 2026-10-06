@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 店頭iPadで最大5組の注文を受け、パソコンの管理画面でリアルタイム管理できるGitHub Pages対応アプリを作る。
+**Goal:** 店頭iPadで最大10組の注文を受け、パソコンの管理画面でリアルタイム管理できるGitHub Pages対応アプリを作る。
 
-**Architecture:** React/TypeScriptの静的PWAをGitHub Pagesへ配置し、Firebase AuthenticationとCloud Firestoreで認証・リアルタイム同期を行う。注文作成はFirestoreトランザクションで空いている受付番号1〜5を確保し、完了または取消時に番号を再利用可能にする。
+**Architecture:** React/TypeScriptの静的PWAをGitHub Pagesへ配置し、Firebase AuthenticationとCloud Firestoreで認証・リアルタイム同期を行う。注文作成はFirestoreトランザクションで空いている受付番号1〜10を確保し、完了または取消時に番号を再利用可能にする。
 
 **Tech Stack:** React 19, TypeScript, Vite, Firebase Web SDK, Vitest, Testing Library, GitHub Actions
 
@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - 注文は店舗が用意する1台のiPadからのみ受け付ける。
-- 受付番号は空いている1〜5の最小番号を使い、5組受付中は新規注文を拒否する。
+- 受付番号は空いている1〜10の最小番号を使い、10組受付中は新規注文を拒否する。
 - 1カップは4個入り・300円。複数の味と複数カップを1注文に含められる。
 - 共通味は塩レモン、チリチーズ、サワークリーム。11日限定はのり塩、ストロングガーリック。12日限定は明太子バター、コンソメ。
 - 注文端末と管理者は別アカウントで初回ログインし、Firebase Security Rulesで権限を分離する。
@@ -23,7 +23,7 @@
 ## Review Focus
 
 - 注文ボタンの連打でも注文が1件だけ作られること。
-- 同時注文時も受付番号が重複せず、6件目が拒否されること。
+- 同時注文時も受付番号が重複せず、11件目が拒否されること。
 - 0カップ、負数、不正な味、上限を超える数量が拒否されること。
 - 通信失敗時に受付済みと誤表示しないこと。
 - 注文端末が管理操作できず、未認証利用者が注文できないこと。
@@ -70,7 +70,7 @@
 - Consumes: Task 1のドメイン、Task 2の認証・注文ストア
 - Produces: `#/`注文端末、`#/admin`管理画面
 
-- [ ] 注文入力、受付番号表示、5組満員、状態変更、完了解放の画面テストを書く。
+- [ ] 注文入力、受付番号表示、10組満員、状態変更、完了解放の画面テストを書く。
 - [ ] テストを実行し、画面未実装による期待どおりの失敗を確認する。
 - [ ] 大きなタッチ操作と日本語表示を備えた各画面を最小実装する。
 - [ ] 全テスト・型検査を実行し、コミットする。

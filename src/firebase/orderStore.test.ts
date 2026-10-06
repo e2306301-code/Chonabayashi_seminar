@@ -7,10 +7,10 @@ import {
   isAllowedTransition,
   type OrderPersistence,
 } from './orderStore'
-import type { SlotRecord } from './types'
+import type { SlotRecord, TicketNumber } from './types'
 
 function slot(
-  ticketNumber: 1 | 2 | 3 | 4 | 5,
+  ticketNumber: TicketNumber,
   state: SlotRecord['state'],
 ): SlotRecord {
   return { ticketNumber, state }
@@ -29,7 +29,7 @@ describe('getNextTicketNumber', () => {
     ).toBe(2)
   })
 
-  it('throws when all five tickets are active', () => {
+  it('throws when all ten tickets are active', () => {
     expect(() =>
       getNextTicketNumber([
         slot(1, 'received'),
@@ -37,6 +37,11 @@ describe('getNextTicketNumber', () => {
         slot(3, 'ready'),
         slot(4, 'received'),
         slot(5, 'cooking'),
+        slot(6, 'received'),
+        slot(7, 'cooking'),
+        slot(8, 'ready'),
+        slot(9, 'received'),
+        slot(10, 'cooking'),
       ]),
     ).toThrow(FullCapacityError)
   })
@@ -117,16 +122,16 @@ describe('createOrder', () => {
 
 describe('getStoreInitializationPlan', () => {
   it('keeps an existing active menu setting when an administrator logs in again', () => {
-    expect(getStoreInitializationPlan(['1', '2', '3', '4', '5'], true)).toEqual({
+    expect(getStoreInitializationPlan(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], true)).toEqual({
       initializeConfig: false,
       missingTickets: [],
     })
   })
 
   it('initializes only missing ticket slots and a missing config', () => {
-    expect(getStoreInitializationPlan(['1', '3'], false)).toEqual({
+    expect(getStoreInitializationPlan(['1', '3', '10'], false)).toEqual({
       initializeConfig: true,
-      missingTickets: [2, 4, 5],
+      missingTickets: [2, 4, 5, 6, 7, 8, 9],
     })
   })
 })

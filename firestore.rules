@@ -21,7 +21,7 @@ service cloud.firestore {
     }
 
     function validTicket(ticket) {
-      return ticket is int && ticket >= 1 && ticket <= 5;
+      return ticket is int && ticket >= 1 && ticket <= 10;
     }
 
     function ticketMatchesSlot(slotId, ticket) {
@@ -29,7 +29,12 @@ service cloud.firestore {
         || (slotId == '2' && ticket == 2)
         || (slotId == '3' && ticket == 3)
         || (slotId == '4' && ticket == 4)
-        || (slotId == '5' && ticket == 5);
+        || (slotId == '5' && ticket == 5)
+        || (slotId == '6' && ticket == 6)
+        || (slotId == '7' && ticket == 7)
+        || (slotId == '8' && ticket == 8)
+        || (slotId == '9' && ticket == 9)
+        || (slotId == '10' && ticket == 10);
     }
 
     function validTotals(data) {

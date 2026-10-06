@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { getMenuForDay, MENU_DAY_LABELS, type FlavorId, type MenuDay } from '../domain/menu'
 import { calculateTotals, MAX_CUPS_PER_ORDER, type OrderDraft } from '../domain/order'
 import { FullCapacityError, type OrderReservation } from '../firebase/orderStore'
-import type { SlotRecord } from '../firebase/types'
+import { MAX_ACTIVE_ORDERS, type SlotRecord } from '../firebase/types'
 import { FlavorCard } from '../components/FlavorCard'
 import { OrderSummary } from '../components/OrderSummary'
 
@@ -29,7 +29,8 @@ export function KioskScreen({ menuDay, slots, onSubmit, onSignOut }: KioskScreen
     [menu, quantities],
   )
   const totals = calculateTotals(items)
-  const isFull = slots.filter((slot) => slot.state !== 'available').length >= 5
+  const isFull =
+    slots.filter((slot) => slot.state !== 'available').length >= MAX_ACTIVE_ORDERS
 
   function changeQuantity(flavorId: FlavorId, cups: number) {
     if (cups < 0 || totals.totalCups - (quantities[flavorId] ?? 0) + cups > MAX_CUPS_PER_ORDER) return

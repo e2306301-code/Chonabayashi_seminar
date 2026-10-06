@@ -21,14 +21,15 @@ import {
   type OrderDraft,
 } from '../domain/order'
 import { getFirebaseServices } from './client'
-import type {
-  ActiveOrderStatus,
-  ClosedOrderStatus,
-  OrderRecord,
-  OrderStatus,
-  SlotRecord,
-  StoreConfig,
-  TicketNumber,
+import {
+  TICKET_NUMBERS,
+  type ActiveOrderStatus,
+  type ClosedOrderStatus,
+  type OrderRecord,
+  type OrderStatus,
+  type SlotRecord,
+  type StoreConfig,
+  type TicketNumber,
 } from './types'
 
 export class FullCapacityError extends Error {
@@ -93,7 +94,7 @@ class FirestoreOrderPersistence implements OrderPersistence {
   async reserveOrder(draft: OrderDraft): Promise<OrderReservation> {
     const { db } = getFirebaseServices()
     const orderRef = doc(collection(db, 'orders'))
-    const slotRefs = ([1, 2, 3, 4, 5] as const).map((ticket) =>
+    const slotRefs = TICKET_NUMBERS.map((ticket) =>
       doc(db, 'slots', String(ticket)),
     )
 
@@ -145,7 +146,7 @@ export function observeSlots(
     (snapshot) => {
       const records = snapshot.docs.map(asSlot)
       callback(
-        ([1, 2, 3, 4, 5] as const).map(
+        TICKET_NUMBERS.map(
           (ticketNumber) =>
             records.find((slot) => slot.ticketNumber === ticketNumber) ?? {
               ticketNumber,
@@ -268,7 +269,7 @@ export function getStoreInitializationPlan(
   const existing = new Set(existingSlotIds)
   return {
     initializeConfig: !configExists,
-    missingTickets: ([1, 2, 3, 4, 5] as const).filter(
+    missingTickets: TICKET_NUMBERS.filter(
       (ticketNumber) => !existing.has(String(ticketNumber)),
     ),
   }

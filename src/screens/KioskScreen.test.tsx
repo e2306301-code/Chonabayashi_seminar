@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { KioskScreen } from './KioskScreen'
 import type { SlotRecord } from '../firebase/types'
 
-const availableSlots: SlotRecord[] = ([1, 2, 3, 4, 5] as const).map(
+const availableSlots: SlotRecord[] = ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const).map(
   (ticketNumber) => ({ ticketNumber, state: 'available' }),
 )
 
@@ -60,8 +60,8 @@ describe('KioskScreen', () => {
     expect(screen.getByText('合計 0カップ')).toBeInTheDocument()
   })
 
-  it('stops accepting orders while all five tickets are active', () => {
-    const fullSlots: SlotRecord[] = ([1, 2, 3, 4, 5] as const).map(
+  it('stops accepting orders while all ten tickets are active', () => {
+    const fullSlots: SlotRecord[] = ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const).map(
       (ticketNumber) => ({ ticketNumber, state: 'received' }),
     )
     render(
@@ -75,6 +75,28 @@ describe('KioskScreen', () => {
 
     expect(screen.getByRole('heading', { name: 'ただいま受付上限です' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'この内容で注文する' })).toBeDisabled()
+  })
+
+  it('keeps accepting orders when five of ten tickets are active', async () => {
+    const user = userEvent.setup()
+    const halfFullSlots: SlotRecord[] = ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const).map(
+      (ticketNumber) => ({
+        ticketNumber,
+        state: ticketNumber <= 5 ? 'received' : 'available',
+      }),
+    )
+    render(
+      <KioskScreen
+        menuDay="day11"
+        slots={halfFullSlots}
+        onSubmit={vi.fn()}
+        onSignOut={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('受付できます・空き 5組')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '塩レモンを1カップ増やす' }))
+    expect(screen.getByRole('button', { name: 'この内容で注文する' })).toBeEnabled()
   })
 
   it('keeps the order editable and shows a clear message after a network failure', async () => {

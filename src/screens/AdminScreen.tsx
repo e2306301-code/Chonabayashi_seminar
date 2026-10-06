@@ -1,6 +1,12 @@
 import { useState } from 'react'
 import { MENU_DAY_LABELS, type MenuDay } from '../domain/menu'
-import type { OrderRecord, OrderStatus, SlotRecord, TicketNumber } from '../firebase/types'
+import {
+  MAX_ACTIVE_ORDERS,
+  type OrderRecord,
+  type OrderStatus,
+  type SlotRecord,
+  type TicketNumber,
+} from '../firebase/types'
 import { OrderCard } from '../components/OrderCard'
 
 interface AdminScreenProps {
@@ -73,7 +79,7 @@ export function AdminScreen({
 
       <section className="admin-summary">
         <div><strong>{activeCount}</strong><span>受付中</span></div>
-        <div><strong>{5 - activeCount}</strong><span>受付可能</span></div>
+        <div><strong>{MAX_ACTIVE_ORDERS - activeCount}</strong><span>受付可能</span></div>
         <p>現在：{MENU_DAY_LABELS[menuDay]}のメニュー</p>
       </section>
 
@@ -83,7 +89,7 @@ export function AdminScreen({
         <div className="section-heading section-heading--admin">
           <div>
             <p>リアルタイムで自動更新されます</p>
-            <h2 id="active-orders-heading">受付番号 1〜5</h2>
+            <h2 id="active-orders-heading">受付番号 1〜{MAX_ACTIVE_ORDERS}</h2>
           </div>
         </div>
         <div className="orders-grid">

@@ -11,12 +11,17 @@ import {
   setActiveMenuDay,
   transitionOrder,
 } from './firebase/orderStore'
-import type { OrderRecord, SessionUser, SlotRecord } from './firebase/types'
+import {
+  TICKET_NUMBERS,
+  type OrderRecord,
+  type SessionUser,
+  type SlotRecord,
+} from './firebase/types'
 import { LoginScreen } from './screens/LoginScreen'
 import { KioskScreen } from './screens/KioskScreen'
 import { AdminScreen } from './screens/AdminScreen'
 
-const EMPTY_SLOTS: SlotRecord[] = ([1, 2, 3, 4, 5] as const).map(
+const EMPTY_SLOTS: SlotRecord[] = TICKET_NUMBERS.map(
   (ticketNumber) => ({ ticketNumber, state: 'available' }),
 )
 

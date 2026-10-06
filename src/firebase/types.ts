@@ -35,7 +35,9 @@ export type ActiveOrderStatus = 'received' | 'cooking' | 'ready'
 export type ClosedOrderStatus = 'completed' | 'cancelled'
 export type OrderStatus = ActiveOrderStatus | ClosedOrderStatus
 export type SlotState = 'available' | ActiveOrderStatus
-export type TicketNumber = 1 | 2 | 3 | 4 | 5
+export const TICKET_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const
+export const MAX_ACTIVE_ORDERS = TICKET_NUMBERS.length
+export type TicketNumber = (typeof TICKET_NUMBERS)[number]
 
 export interface StoreConfig {
   activeMenuDay: MenuDay

@@ -1,0 +1,102 @@
+import { getFlavor } from '../domain/menu'
+import {
+  ORDER_STATUS_LABELS,
+  type ActiveOrderStatus,
+  type OrderStatus,
+  type SlotRecord,
+} from '../firebase/types'
+
+interface OrderCardProps {
+  slot: SlotRecord
+  busy?: boolean
+  onTransition: (nextStatus: OrderStatus) => void
+}
+
+const NEXT_ACTION: Record<
+  ActiveOrderStatus,
+  { status: OrderStatus; label: string; aria: (ticket: number) => string }
+> = {
+  received: {
+    status: 'cooking',
+    label: '調理を開始',
+    aria: (ticket) => `${ticket}番の調理を開始`,
+  },
+  cooking: {
+    status: 'ready',
+    label: '受け渡し待ちへ',
+    aria: (ticket) => `${ticket}番を受け渡し待ちにする`,
+  },
+  ready: {
+    status: 'completed',
+    label: '受け取り完了',
+    aria: (ticket) => `${ticket}番の受け取りを完了`,
+  },
+}
+
+export function OrderCard({ slot, busy = false, onTransition }: OrderCardProps) {
+  if (slot.state === 'available') {
+    return (
+      <article
+        className="order-card order-card--available"
+        aria-label={`受付番号 ${slot.ticketNumber}`}
+      >
+        <h3>受付番号 {slot.ticketNumber}</h3>
+        <div className="available-mark">空き</div>
+        <p>次の注文を受付できます</p>
+      </article>
+    )
+  }
+
+  const action = NEXT_ACTION[slot.state]
+  return (
+    <article
+      className={`order-card order-card--${slot.state}`}
+      aria-label={`受付番号 ${slot.ticketNumber}`}
+    >
+      <header className="order-card__header">
+        <div>
+          <span className="order-card__eyebrow">受付番号</span>
+          <strong className="order-card__number">{slot.ticketNumber}</strong>
+        </div>
+        <span className="status-chip">{ORDER_STATUS_LABELS[slot.state]}</span>
+      </header>
+
+      <ul className="order-items">
+        {(slot.items ?? []).map((item) => (
+          <li key={item.flavorId}>
+            <span>{getFlavor(item.flavorId)?.name ?? item.flavorId}</span>
+            <strong>× {item.cups}カップ</strong>
+          </li>
+        ))}
+      </ul>
+
+      <div className="order-card__totals">
+        <span>
+          合計 {slot.totalCups ?? 0}カップ・{slot.totalPieces ?? 0}個
+        </span>
+        <strong>{(slot.totalAmount ?? 0).toLocaleString('ja-JP')}円</strong>
+      </div>
+
+      <div className="order-card__actions">
+        <button
+          type="button"
+          className="button button--primary"
+          aria-label={action.aria(slot.ticketNumber)}
+          disabled={busy}
+          onClick={() => onTransition(action.status)}
+        >
+          {action.label}
+        </button>
+        <button
+          type="button"
+          className="button button--danger-quiet"
+          aria-label={`${slot.ticketNumber}番の注文を取り消す`}
+          disabled={busy}
+          onClick={() => onTransition('cancelled')}
+        >
+          取消
+        </button>
+      </div>
+    </article>
+  )
+}

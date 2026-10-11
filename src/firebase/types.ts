@@ -2,6 +2,8 @@ import type { MenuDay } from '../domain/menu'
 import type { OrderItem, OrderTotals } from '../domain/order'
 
 export type UserRole = 'kiosk' | 'admin'
+export type PaymentMethod = 'cash' | 'paypay'
+export type SaleStatus = 'recorded' | 'cancelled'
 
 export type StoreAction =
   | 'read-config'
@@ -52,6 +54,8 @@ export interface SlotRecord extends Partial<OrderTotals> {
   menuDay?: MenuDay
   items?: OrderItem[]
   createdAt?: unknown
+  checkoutId?: string
+  paymentMethod?: PaymentMethod
 }
 
 export interface OrderRecord extends OrderTotals {
@@ -63,6 +67,21 @@ export interface OrderRecord extends OrderTotals {
   createdAt: unknown
   updatedAt: unknown
   closedAt?: unknown
+  checkoutId?: string
+  paymentMethod?: PaymentMethod
+}
+
+export interface SaleRecord extends OrderTotals {
+  id: string
+  checkoutId: string
+  orderId: string
+  ticketNumber: TicketNumber
+  menuDay: MenuDay
+  items: OrderItem[]
+  paymentMethod: PaymentMethod
+  status: SaleStatus
+  recordedAt: unknown
+  cancelledAt?: unknown
 }
 
 export interface SessionUser {
@@ -77,4 +96,9 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   ready: '受け渡し待ち',
   completed: '完了',
   cancelled: '取消',
+}
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  cash: '現金',
+  paypay: 'PayPay',
 }

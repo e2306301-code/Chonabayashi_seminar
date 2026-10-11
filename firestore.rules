@@ -104,7 +104,8 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-      allow read: if isAdmin();
+      allow get: if isAdmin() || isKiosk();
+      allow list: if isAdmin();
       allow create: if isKiosk()
         && request.resource.data.status == 'received'
         && request.resource.data.checkoutId == orderId
@@ -132,7 +133,8 @@ service cloud.firestore {
     }
 
     match /sales/{saleId} {
-      allow read: if isAdmin();
+      allow get: if isAdmin() || isKiosk();
+      allow list: if isAdmin();
       allow create: if isKiosk()
         && request.resource.data.checkoutId == saleId
         && request.resource.data.orderId == saleId

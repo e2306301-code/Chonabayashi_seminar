@@ -22,11 +22,18 @@ describe('authorization model mirrored by Firestore rules', () => {
     expect(canPerform('kiosk', action)).toBe(false)
   })
 
+  it('allows a kiosk to get one checkout record without listing order or sales data', () => {
+    expect(canPerform('kiosk', 'get-checkout')).toBe(true)
+    expect(canPerform('kiosk', 'read-orders')).toBe(false)
+    expect(canPerform('kiosk', 'read-sales')).toBe(false)
+  })
+
   it('allows an administrator to read and manage the store', () => {
     const actions: StoreAction[] = [
       'read-config',
       'read-slots',
       'read-orders',
+      'get-checkout',
       'change-menu',
       'transition-order',
       'delete-history',
@@ -46,6 +53,7 @@ describe('authorization model mirrored by Firestore rules', () => {
       'read-config',
       'read-slots',
       'read-orders',
+      'get-checkout',
       'create-order',
       'create-checkout',
       'change-menu',

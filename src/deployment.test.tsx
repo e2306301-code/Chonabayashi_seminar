@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
 import { describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { registerServiceWorker } from './pwa/register'
@@ -25,5 +26,11 @@ describe('deployment safeguards', () => {
     await expect(
       registerServiceWorker({}, '/Chonabayashi_seminar/'),
     ).resolves.toBeUndefined()
+  })
+
+  it('ships Firestore rules that protect the sales ledger from deletion', () => {
+    const rules = readFileSync('firestore.rules', 'utf8')
+    expect(rules).toContain('match /sales/{saleId}')
+    expect(rules).toMatch(/match \/sales\/\{saleId\}[\s\S]*allow delete: if false;/)
   })
 })

@@ -67,8 +67,18 @@ service cloud.firestore {
 
     match /config/store {
       allow read: if signedIn();
-      allow create, update: if isAdmin()
+      allow create: if isAdmin()
         && request.resource.data.activeMenuDay in ['day11', 'day12'];
+      allow update: if (
+        isAdmin()
+        && request.resource.data.activeMenuDay in ['day11', 'day12']
+      ) || (
+        isKiosk()
+        && request.resource.data.activeMenuDay == resource.data.activeMenuDay
+        && validTicket(request.resource.data.nextTicketNumber)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['nextTicketNumber'])
+      );
       allow delete: if false;
     }
 

@@ -20,7 +20,7 @@ function slot(
 }
 
 describe('getNextTicketNumber', () => {
-  it('returns the smallest available ticket number', () => {
+  it('starts at one by default and returns the first available ticket', () => {
     expect(
       getNextTicketNumber([
         slot(1, 'received'),
@@ -30,6 +30,33 @@ describe('getNextTicketNumber', () => {
         slot(5, 'cooking'),
       ]),
     ).toBe(2)
+  })
+
+  it('starts from the saved next ticket and skips active tickets', () => {
+    expect(
+      getNextTicketNumber(
+        [
+          slot(1, 'available'),
+          slot(6, 'received'),
+          slot(7, 'cooking'),
+          slot(8, 'available'),
+        ],
+        6,
+      ),
+    ).toBe(8)
+  })
+
+  it('wraps from ticket ten back to ticket one', () => {
+    expect(
+      getNextTicketNumber(
+        [
+          slot(1, 'available'),
+          slot(9, 'available'),
+          slot(10, 'received'),
+        ],
+        10,
+      ),
+    ).toBe(1)
   })
 
   it('throws when all ten tickets are active', () => {

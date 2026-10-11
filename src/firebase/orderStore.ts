@@ -61,13 +61,25 @@ export interface CheckoutPersistence {
 
 export function getNextTicketNumber(
   slots: readonly SlotRecord[],
+  preferredTicket: TicketNumber = 1,
 ): TicketNumber {
-  const available = slots
-    .filter((slot) => slot.state === 'available')
-    .map((slot) => slot.ticketNumber)
-    .sort((a, b) => a - b)[0]
-  if (!available) throw new FullCapacityError()
-  return available
+  const availableTickets = new Set(
+    slots
+      .filter((slot) => slot.state === 'available')
+      .map((slot) => slot.ticketNumber),
+  )
+  const startIndex = TICKET_NUMBERS.indexOf(preferredTicket)
+  for (let offset = 0; offset < TICKET_NUMBERS.length; offset += 1) {
+    const ticketNumber = TICKET_NUMBERS[
+      (startIndex + offset) % TICKET_NUMBERS.length
+    ]
+    if (availableTickets.has(ticketNumber)) return ticketNumber
+  }
+  throw new FullCapacityError()
+}
+
+export function getFollowingTicketNumber(ticketNumber: TicketNumber): TicketNumber {
+  return TICKET_NUMBERS[ticketNumber % TICKET_NUMBERS.length]
 }
 
 const ALLOWED_TRANSITIONS: Record<
@@ -173,14 +185,16 @@ class FirestoreCheckoutPersistence implements CheckoutPersistence {
     const { db } = getFirebaseServices()
     const orderRef = doc(db, 'orders', draft.checkoutId)
     const saleRef = doc(db, 'sales', draft.checkoutId)
+    const configRef = doc(db, 'config', 'store')
     const slotRefs = TICKET_NUMBERS.map((ticket) =>
       doc(db, 'slots', String(ticket)),
     )
 
     return runTransaction(db, async (transaction) => {
-      const [existingOrder, existingSale, ...slotSnapshots] = await Promise.all([
+      const [existingOrder, existingSale, configSnapshot, ...slotSnapshots] = await Promise.all([
         transaction.get(orderRef),
         transaction.get(saleRef),
+        transaction.get(configRef),
         ...slotRefs.map((slotRef) => transaction.get(slotRef)),
       ])
       if (existingOrder.exists() || existingSale.exists()) {
@@ -200,7 +214,11 @@ class FirestoreCheckoutPersistence implements CheckoutPersistence {
           ? (snapshot.data() as SlotRecord)
           : ({ ticketNumber: (index + 1) as TicketNumber, state: 'available' } satisfies SlotRecord),
       )
-      const ticketNumber = getNextTicketNumber(slots)
+      if (!configSnapshot.exists()) {
+        throw new Error('店舗設定がありません。管理画面を開いて初期化してください')
+      }
+      const config = configSnapshot.data() as StoreConfig
+      const ticketNumber = getNextTicketNumber(slots, config.nextTicketNumber ?? 1)
       const totals = calculateTotals(draft.items)
       const timestamp = serverTimestamp()
       const common = {
@@ -228,6 +246,9 @@ class FirestoreCheckoutPersistence implements CheckoutPersistence {
         state: 'received',
         orderId: draft.checkoutId,
         createdAt: timestamp,
+      })
+      transaction.update(configRef, {
+        nextTicketNumber: getFollowingTicketNumber(ticketNumber),
       })
       return {
         checkoutId: draft.checkoutId,

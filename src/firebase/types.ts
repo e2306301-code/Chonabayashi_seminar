@@ -10,6 +10,7 @@ export type StoreAction =
   | 'read-slots'
   | 'read-orders'
   | 'get-checkout'
+  | 'advance-ticket-sequence'
   | 'create-order'
   | 'create-checkout'
   | 'read-sales'
@@ -24,6 +25,7 @@ const ROLE_ACTIONS: Record<UserRole, readonly StoreAction[]> = {
     'read-config',
     'read-slots',
     'get-checkout',
+    'advance-ticket-sequence',
     'create-order',
     'create-checkout',
   ],
@@ -32,6 +34,7 @@ const ROLE_ACTIONS: Record<UserRole, readonly StoreAction[]> = {
     'read-slots',
     'read-orders',
     'get-checkout',
+    'advance-ticket-sequence',
     'change-menu',
     'transition-order',
     'delete-history',
@@ -58,6 +61,7 @@ export type TicketNumber = (typeof TICKET_NUMBERS)[number]
 
 export interface StoreConfig {
   activeMenuDay: MenuDay
+  nextTicketNumber?: TicketNumber
 }
 
 export interface SlotRecord extends Partial<OrderTotals> {

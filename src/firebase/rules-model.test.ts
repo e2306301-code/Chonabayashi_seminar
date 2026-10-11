@@ -24,6 +24,7 @@ describe('authorization model mirrored by Firestore rules', () => {
 
   it('allows a kiosk to get one checkout record without listing order or sales data', () => {
     expect(canPerform('kiosk', 'get-checkout')).toBe(true)
+    expect(canPerform('kiosk', 'advance-ticket-sequence')).toBe(true)
     expect(canPerform('kiosk', 'read-orders')).toBe(false)
     expect(canPerform('kiosk', 'read-sales')).toBe(false)
   })
@@ -34,6 +35,7 @@ describe('authorization model mirrored by Firestore rules', () => {
       'read-slots',
       'read-orders',
       'get-checkout',
+      'advance-ticket-sequence',
       'change-menu',
       'transition-order',
       'delete-history',
@@ -54,6 +56,7 @@ describe('authorization model mirrored by Firestore rules', () => {
       'read-slots',
       'read-orders',
       'get-checkout',
+      'advance-ticket-sequence',
       'create-order',
       'create-checkout',
       'change-menu',

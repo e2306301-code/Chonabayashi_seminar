@@ -1,4 +1,5 @@
 import { getMenuForDay, type FlavorId, type MenuDay } from './menu'
+import type { PaymentMethod } from '../firebase/types'
 
 export const PRICE_PER_CUP = 300
 export const PIECES_PER_CUP = 4
@@ -12,6 +13,11 @@ export interface OrderItem {
 export interface OrderDraft {
   menuDay: MenuDay
   items: OrderItem[]
+}
+
+export interface CheckoutDraft extends OrderDraft {
+  checkoutId: string
+  paymentMethod: PaymentMethod
 }
 
 export interface OrderTotals {

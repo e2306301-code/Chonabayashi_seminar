@@ -3,8 +3,11 @@ import {
   FullCapacityError,
   createOrder,
   getNextTicketNumber,
+  getSaleCancellationEffect,
   getStoreInitializationPlan,
   isAllowedTransition,
+  registerCheckout,
+  type CheckoutPersistence,
   type OrderPersistence,
 } from './orderStore'
 import type { SlotRecord, TicketNumber } from './types'
@@ -118,6 +121,89 @@ describe('createOrder', () => {
       ),
     ).rejects.toThrow('network unavailable')
   })
+})
+
+describe('registerCheckout', () => {
+  it('rejects a checkout without a payment method', async () => {
+    const persistence: CheckoutPersistence = {
+      reserveCheckout: vi.fn(),
+    }
+
+    await expect(
+      registerCheckout(
+        {
+          checkoutId: 'checkout-1',
+          menuDay: 'day11',
+          items: [{ flavorId: 'plain', cups: 1 }],
+        } as never,
+        persistence,
+      ),
+    ).rejects.toThrow('支払い方法を選んでください')
+    expect(persistence.reserveCheckout).not.toHaveBeenCalled()
+  })
+
+  it('passes the stable checkout id and payment method to persistence', async () => {
+    const persistence: CheckoutPersistence = {
+      reserveCheckout: vi.fn().mockResolvedValue({
+        checkoutId: 'checkout-1',
+        orderId: 'checkout-1',
+        ticketNumber: 4,
+      }),
+    }
+    const draft = {
+      checkoutId: 'checkout-1',
+      menuDay: 'day12' as const,
+      items: [{ flavorId: 'consomme' as const, cups: 2 }],
+      paymentMethod: 'paypay' as const,
+    }
+
+    await expect(registerCheckout(draft, persistence)).resolves.toEqual({
+      checkoutId: 'checkout-1',
+      orderId: 'checkout-1',
+      ticketNumber: 4,
+    })
+    expect(persistence.reserveCheckout).toHaveBeenCalledWith(draft)
+  })
+
+  it('does not hide a full-capacity failure from persistence', async () => {
+    const persistence: CheckoutPersistence = {
+      reserveCheckout: vi.fn().mockRejectedValue(new FullCapacityError()),
+    }
+
+    await expect(
+      registerCheckout(
+        {
+          checkoutId: 'checkout-full',
+          menuDay: 'day11',
+          items: [{ flavorId: 'plain', cups: 1 }],
+          paymentMethod: 'cash',
+        },
+        persistence,
+      ),
+    ).rejects.toThrow(FullCapacityError)
+  })
+})
+
+describe('getSaleCancellationEffect', () => {
+  it.each(['received', 'cooking', 'ready'] as const)(
+    'cancels the active %s order and releases its ticket',
+    (status) => {
+      expect(getSaleCancellationEffect(status)).toEqual({
+        cancelOrder: true,
+        releaseSlot: true,
+      })
+    },
+  )
+
+  it.each(['completed', 'cancelled', null] as const)(
+    'keeps a closed or missing %s order unchanged',
+    (status) => {
+      expect(getSaleCancellationEffect(status)).toEqual({
+        cancelOrder: false,
+        releaseSlot: false,
+      })
+    },
+  )
 })
 
 describe('getStoreInitializationPlan', () => {

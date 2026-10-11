@@ -6,6 +6,7 @@ describe('authorization model mirrored by Firestore rules', () => {
     'read-config',
     'read-slots',
     'create-order',
+    'create-checkout',
   ])('allows a kiosk to %s', (action) => {
     expect(canPerform('kiosk', action)).toBe(true)
   })
@@ -15,6 +16,8 @@ describe('authorization model mirrored by Firestore rules', () => {
     'transition-order',
     'delete-history',
     'initialize-store',
+    'read-sales',
+    'cancel-sale',
   ])('does not allow a kiosk to %s', (action) => {
     expect(canPerform('kiosk', action)).toBe(false)
   })
@@ -28,6 +31,8 @@ describe('authorization model mirrored by Firestore rules', () => {
       'transition-order',
       'delete-history',
       'initialize-store',
+      'read-sales',
+      'cancel-sale',
     ]
     expect(actions.every((action) => canPerform('admin', action))).toBe(true)
   })
@@ -42,10 +47,13 @@ describe('authorization model mirrored by Firestore rules', () => {
       'read-slots',
       'read-orders',
       'create-order',
+      'create-checkout',
       'change-menu',
       'transition-order',
       'delete-history',
       'initialize-store',
+      'read-sales',
+      'cancel-sale',
     ]
     expect(actions.some((action) => canPerform(null, action))).toBe(false)
   })

@@ -10,13 +10,16 @@ export type StoreAction =
   | 'read-slots'
   | 'read-orders'
   | 'create-order'
+  | 'create-checkout'
+  | 'read-sales'
+  | 'cancel-sale'
   | 'change-menu'
   | 'transition-order'
   | 'delete-history'
   | 'initialize-store'
 
 const ROLE_ACTIONS: Record<UserRole, readonly StoreAction[]> = {
-  kiosk: ['read-config', 'read-slots', 'create-order'],
+  kiosk: ['read-config', 'read-slots', 'create-order', 'create-checkout'],
   admin: [
     'read-config',
     'read-slots',
@@ -25,6 +28,8 @@ const ROLE_ACTIONS: Record<UserRole, readonly StoreAction[]> = {
     'transition-order',
     'delete-history',
     'initialize-store',
+    'read-sales',
+    'cancel-sale',
   ],
 }
 

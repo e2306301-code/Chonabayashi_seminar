@@ -19,6 +19,7 @@ import type { MenuDay } from '../domain/menu'
 import {
   calculateTotals,
   validateOrder,
+  type CheckoutDraft,
   type OrderDraft,
 } from '../domain/order'
 import { getFirebaseServices } from './client'
@@ -28,6 +29,7 @@ import {
   type ClosedOrderStatus,
   type OrderRecord,
   type OrderStatus,
+  type SaleRecord,
   type SlotRecord,
   type StoreConfig,
   type TicketNumber,
@@ -45,8 +47,16 @@ export interface OrderReservation {
   ticketNumber: TicketNumber
 }
 
+export interface CheckoutReservation extends OrderReservation {
+  checkoutId: string
+}
+
 export interface OrderPersistence {
   reserveOrder(draft: OrderDraft): Promise<OrderReservation>
+}
+
+export interface CheckoutPersistence {
+  reserveCheckout(draft: CheckoutDraft): Promise<CheckoutReservation>
 }
 
 export function getNextTicketNumber(
@@ -76,6 +86,14 @@ export function isAllowedTransition(
   return ALLOWED_TRANSITIONS[from].includes(to)
 }
 
+export function getSaleCancellationEffect(
+  orderStatus: OrderStatus | null,
+): { cancelOrder: boolean; releaseSlot: boolean } {
+  const active =
+    orderStatus !== null && ['received', 'cooking', 'ready'].includes(orderStatus)
+  return { cancelOrder: active, releaseSlot: active }
+}
+
 export async function createOrder(
   draft: OrderDraft,
   persistence: OrderPersistence = firestoreOrderPersistence,
@@ -83,6 +101,19 @@ export async function createOrder(
   const validationError = validateOrder(draft.items, draft.menuDay)
   if (validationError) throw new Error(validationError)
   return persistence.reserveOrder(draft)
+}
+
+export async function registerCheckout(
+  draft: CheckoutDraft,
+  persistence: CheckoutPersistence = firestoreCheckoutPersistence,
+): Promise<CheckoutReservation> {
+  const validationError = validateOrder(draft.items, draft.menuDay)
+  if (validationError) throw new Error(validationError)
+  if (!draft.paymentMethod || !['cash', 'paypay'].includes(draft.paymentMethod)) {
+    throw new Error('支払い方法を選んでください')
+  }
+  if (!draft.checkoutId.trim()) throw new Error('会計IDが正しくありません')
+  return persistence.reserveCheckout(draft)
 }
 
 function asSlot(
@@ -136,6 +167,79 @@ class FirestoreOrderPersistence implements OrderPersistence {
 
 export const firestoreOrderPersistence: OrderPersistence =
   new FirestoreOrderPersistence()
+
+class FirestoreCheckoutPersistence implements CheckoutPersistence {
+  async reserveCheckout(draft: CheckoutDraft): Promise<CheckoutReservation> {
+    const { db } = getFirebaseServices()
+    const orderRef = doc(db, 'orders', draft.checkoutId)
+    const saleRef = doc(db, 'sales', draft.checkoutId)
+    const slotRefs = TICKET_NUMBERS.map((ticket) =>
+      doc(db, 'slots', String(ticket)),
+    )
+
+    return runTransaction(db, async (transaction) => {
+      const [existingOrder, existingSale, ...slotSnapshots] = await Promise.all([
+        transaction.get(orderRef),
+        transaction.get(saleRef),
+        ...slotRefs.map((slotRef) => transaction.get(slotRef)),
+      ])
+      if (existingOrder.exists() || existingSale.exists()) {
+        if (!existingOrder.exists() || !existingSale.exists()) {
+          throw new Error('会計データが不完全です。管理者へ連絡してください')
+        }
+        const order = existingOrder.data() as OrderRecord
+        return {
+          checkoutId: draft.checkoutId,
+          orderId: draft.checkoutId,
+          ticketNumber: order.ticketNumber,
+        }
+      }
+
+      const slots = slotSnapshots.map((snapshot, index) =>
+        snapshot.exists()
+          ? (snapshot.data() as SlotRecord)
+          : ({ ticketNumber: (index + 1) as TicketNumber, state: 'available' } satisfies SlotRecord),
+      )
+      const ticketNumber = getNextTicketNumber(slots)
+      const totals = calculateTotals(draft.items)
+      const timestamp = serverTimestamp()
+      const common = {
+        checkoutId: draft.checkoutId,
+        ticketNumber,
+        menuDay: draft.menuDay,
+        items: draft.items,
+        paymentMethod: draft.paymentMethod,
+        ...totals,
+      }
+      transaction.set(orderRef, {
+        ...common,
+        status: 'received',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      transaction.set(saleRef, {
+        ...common,
+        orderId: draft.checkoutId,
+        status: 'recorded',
+        recordedAt: timestamp,
+      })
+      transaction.set(slotRefs[ticketNumber - 1], {
+        ...common,
+        state: 'received',
+        orderId: draft.checkoutId,
+        createdAt: timestamp,
+      })
+      return {
+        checkoutId: draft.checkoutId,
+        orderId: draft.checkoutId,
+        ticketNumber,
+      }
+    })
+  }
+}
+
+export const firestoreCheckoutPersistence: CheckoutPersistence =
+  new FirestoreCheckoutPersistence()
 
 export function observeSlots(
   callback: (slots: SlotRecord[]) => void,
@@ -196,6 +300,24 @@ export function observeOrderHistory(
   )
 }
 
+export function observeSales(
+  callback: (sales: SaleRecord[]) => void,
+  onError?: (error: Error) => void,
+): () => void {
+  const { db } = getFirebaseServices()
+  const salesQuery = query(collection(db, 'sales'), orderBy('recordedAt', 'desc'))
+  return onSnapshot(
+    salesQuery,
+    (snapshot) =>
+      callback(
+        snapshot.docs.map(
+          (record) => ({ id: record.id, ...record.data() }) as SaleRecord,
+        ),
+      ),
+    (error) => onError?.(error),
+  )
+}
+
 export async function transitionOrder(
   ticketNumber: TicketNumber,
   nextStatus: ActiveOrderStatus | ClosedOrderStatus,
@@ -215,6 +337,8 @@ export async function transitionOrder(
     const orderRef = doc(db, 'orders', slot.orderId)
     const orderSnapshot = await transaction.get(orderRef)
     if (!orderSnapshot.exists()) throw new Error('注文履歴が見つかりません')
+    const saleRef = doc(db, 'sales', slot.checkoutId ?? slot.orderId)
+    const saleSnapshot = await transaction.get(saleRef)
 
     transaction.update(orderRef, {
       status: nextStatus,
@@ -227,6 +351,58 @@ export async function transitionOrder(
       transaction.set(slotRef, { ticketNumber, state: 'available' })
     } else {
       transaction.update(slotRef, { state: nextStatus })
+    }
+    if (nextStatus === 'cancelled' && saleSnapshot.exists()) {
+      transaction.update(saleRef, {
+        status: 'cancelled',
+        cancelledAt: serverTimestamp(),
+      })
+    }
+  })
+}
+
+export async function cancelSale(sale: SaleRecord): Promise<void> {
+  const { db } = getFirebaseServices()
+  const saleRef = doc(db, 'sales', sale.id)
+  const orderRef = doc(db, 'orders', sale.orderId)
+  await runTransaction(db, async (transaction) => {
+    const [saleSnapshot, orderSnapshot] = await Promise.all([
+      transaction.get(saleRef),
+      transaction.get(orderRef),
+    ])
+    if (!saleSnapshot.exists()) throw new Error('売上履歴が見つかりません')
+    const currentSale = saleSnapshot.data() as SaleRecord
+    if (currentSale.status === 'cancelled') return
+
+    const order = orderSnapshot.exists()
+      ? ({ id: orderSnapshot.id, ...orderSnapshot.data() } as OrderRecord)
+      : null
+    const effect = getSaleCancellationEffect(order?.status ?? null)
+    const slotRef = effect.releaseSlot && order
+      ? doc(db, 'slots', String(order.ticketNumber))
+      : null
+    const slotSnapshot = slotRef ? await transaction.get(slotRef) : null
+
+    transaction.update(saleRef, {
+      status: 'cancelled',
+      cancelledAt: serverTimestamp(),
+    })
+    if (effect.cancelOrder && order) {
+      transaction.update(orderRef, {
+        status: 'cancelled',
+        updatedAt: serverTimestamp(),
+        closedAt: serverTimestamp(),
+      })
+      if (
+        slotRef &&
+        slotSnapshot?.exists() &&
+        (slotSnapshot.data() as SlotRecord).orderId === order.id
+      ) {
+        transaction.set(slotRef, {
+          ticketNumber: order.ticketNumber,
+          state: 'available',
+        })
+      }
     }
   })
 }

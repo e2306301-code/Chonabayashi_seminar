@@ -45,6 +45,10 @@ service cloud.firestore {
         && data.totalAmount == data.totalCups * 300;
     }
 
+    function validPayment(data) {
+      return data.paymentMethod in ['cash', 'paypay'];
+    }
+
     match /users/{userId} {
       allow read: if signedIn() && request.auth.uid == userId;
       allow write: if false;
@@ -69,12 +73,16 @@ service cloud.firestore {
         && validTicket(request.resource.data.ticketNumber)
         && ticketMatchesSlot(slotId, request.resource.data.ticketNumber)
         && request.resource.data.orderId is string
+        && request.resource.data.checkoutId == request.resource.data.orderId
         && request.resource.data.menuDay in ['day11', 'day12']
         && request.resource.data.items is list
         && request.resource.data.items.size() >= 1
         && request.resource.data.items.size() <= 7
         && validTotals(request.resource.data)
+        && validPayment(request.resource.data)
         && getAfter(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.ticketNumber
+          == request.resource.data.ticketNumber
+        && getAfter(/databases/$(database)/documents/sales/$(request.resource.data.checkoutId)).data.ticketNumber
           == request.resource.data.ticketNumber
       );
       allow delete: if false;
@@ -84,23 +92,55 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow create: if isKiosk()
         && request.resource.data.status == 'received'
+        && request.resource.data.checkoutId == orderId
         && validTicket(request.resource.data.ticketNumber)
         && request.resource.data.menuDay in ['day11', 'day12']
         && request.resource.data.items is list
         && request.resource.data.items.size() >= 1
         && request.resource.data.items.size() <= 7
         && validTotals(request.resource.data)
+        && validPayment(request.resource.data)
         && getAfter(/databases/$(database)/documents/slots/$(request.resource.data.ticketNumber)).data.orderId
+          == orderId
+        && getAfter(/databases/$(database)/documents/sales/$(orderId)).data.orderId
           == orderId;
       allow update: if isAdmin()
         && request.resource.data.ticketNumber == resource.data.ticketNumber
+        && request.resource.data.checkoutId == resource.data.checkoutId
+        && request.resource.data.menuDay == resource.data.menuDay
         && request.resource.data.items == resource.data.items
         && request.resource.data.totalCups == resource.data.totalCups
         && request.resource.data.totalPieces == resource.data.totalPieces
         && request.resource.data.totalAmount == resource.data.totalAmount
+        && request.resource.data.paymentMethod == resource.data.paymentMethod
         && request.resource.data.status in ['cooking', 'ready', 'completed', 'cancelled'];
       allow delete: if isAdmin()
         && resource.data.status in ['completed', 'cancelled'];
+    }
+
+    match /sales/{saleId} {
+      allow read: if isAdmin();
+      allow create: if isKiosk()
+        && request.resource.data.checkoutId == saleId
+        && request.resource.data.orderId == saleId
+        && request.resource.data.status == 'recorded'
+        && validTicket(request.resource.data.ticketNumber)
+        && request.resource.data.menuDay in ['day11', 'day12']
+        && request.resource.data.items is list
+        && request.resource.data.items.size() >= 1
+        && request.resource.data.items.size() <= 8
+        && validTotals(request.resource.data)
+        && validPayment(request.resource.data)
+        && getAfter(/databases/$(database)/documents/orders/$(saleId)).data.checkoutId
+          == saleId
+        && getAfter(/databases/$(database)/documents/slots/$(request.resource.data.ticketNumber)).data.checkoutId
+          == saleId;
+      allow update: if isAdmin()
+        && resource.data.status == 'recorded'
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'cancelledAt']);
+      allow delete: if false;
     }
   }
 }

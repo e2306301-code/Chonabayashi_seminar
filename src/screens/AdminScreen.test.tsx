@@ -11,8 +11,8 @@ const slots: SlotRecord[] = [
     orderId: 'order-1',
     menuDay: 'day11',
     items: [
+      { flavorId: 'plain', cups: 1 },
       { flavorId: 'salt-lemon', cups: 2 },
-      { flavorId: 'nori-salt', cups: 1 },
     ],
     totalCups: 3,
     totalPieces: 12,
@@ -48,9 +48,9 @@ describe('AdminScreen', () => {
     ).toHaveLength(10)
     expect(screen.getByRole('heading', { name: '受付番号 1〜10' })).toBeInTheDocument()
     const firstOrder = screen.getByRole('article', { name: '受付番号 1' })
+    expect(within(firstOrder).getByText('プレーン')).toBeInTheDocument()
     expect(within(firstOrder).getByText('塩レモン')).toBeInTheDocument()
     expect(within(firstOrder).getByText('× 2カップ')).toBeInTheDocument()
-    expect(within(firstOrder).getByText('のり塩')).toBeInTheDocument()
     expect(within(firstOrder).getByText('× 1カップ')).toBeInTheDocument()
     expect(within(firstOrder).getByText('合計 3カップ・12個')).toBeInTheDocument()
     expect(within(firstOrder).getByText('900円')).toBeInTheDocument()

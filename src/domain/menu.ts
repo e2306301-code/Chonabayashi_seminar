@@ -1,6 +1,7 @@
 export type MenuDay = 'day11' | 'day12'
 
 export type FlavorId =
+  | 'plain'
   | 'salt-lemon'
   | 'chili-cheese'
   | 'sour-cream'
@@ -23,6 +24,13 @@ export const MENU_DAY_LABELS: Record<MenuDay, string> = {
 }
 
 export const FLAVORS: readonly Flavor[] = [
+  {
+    id: 'plain',
+    name: 'プレーン',
+    emoji: '🍗',
+    tone: 'plain',
+    days: ['day11', 'day12'],
+  },
   {
     id: 'salt-lemon',
     name: '塩レモン',

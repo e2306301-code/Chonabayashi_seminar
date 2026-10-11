@@ -14,8 +14,9 @@ describe('calculateTotals', () => {
 })
 
 describe('daily menu', () => {
-  it('offers the three common flavors and the two day-11 flavors', () => {
+  it('offers plain, the three common flavors, and the two day-11 flavors', () => {
     expect(getMenuForDay('day11').map((flavor) => flavor.id)).toEqual([
+      'plain',
       'salt-lemon',
       'chili-cheese',
       'sour-cream',
@@ -24,8 +25,9 @@ describe('daily menu', () => {
     ])
   })
 
-  it('offers the three common flavors and the two day-12 flavors', () => {
+  it('offers plain, the three common flavors, and the two day-12 flavors', () => {
     expect(getMenuForDay('day12').map((flavor) => flavor.id)).toEqual([
+      'plain',
       'salt-lemon',
       'chili-cheese',
       'sour-cream',

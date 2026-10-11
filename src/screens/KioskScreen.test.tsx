@@ -21,10 +21,11 @@ describe('KioskScreen', () => {
     )
 
     expect(screen.getByRole('heading', { name: '味とカップ数を選んでください' })).toBeInTheDocument()
+    expect(screen.getByText('プレーン')).toBeInTheDocument()
     expect(screen.getByText('のり塩')).toBeInTheDocument()
     expect(screen.queryByText('明太子バター')).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: '塩レモンを1カップ増やす' }))
+    await user.click(screen.getByRole('button', { name: 'プレーンを1カップ増やす' }))
     await user.click(screen.getByRole('button', { name: '塩レモンを1カップ増やす' }))
     await user.click(screen.getByRole('button', { name: 'のり塩を1カップ増やす' }))
 

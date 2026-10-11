@@ -39,11 +39,12 @@ button { touch-action: manipulation; }
 .section-heading p { margin: 0 0 4px; color: #8b6947; font-weight: 700; }
 .section-heading h2 { margin: 0; font: 800 clamp(1.45rem, 3vw, 2.1rem)/1.2 'M PLUS Rounded 1c', sans-serif; }
 .section-heading > span { color: #8b6947; font-weight: 700; }
-.flavor-grid { display: grid; grid-template-columns: repeat(5, minmax(190px, 1fr)); gap: 16px; }
+.flavor-grid { display: grid; grid-template-columns: repeat(6, minmax(170px, 1fr)); gap: 16px; }
 .flavor-card { min-height: 205px; display: flex; flex-direction: column; justify-content: space-between; gap: 18px; padding: 22px 18px 18px; border: 2px solid rgba(75, 53, 35, .08); border-radius: 26px; background: white; box-shadow: var(--shadow); }
 .flavor-card__identity { text-align: center; }
 .flavor-card__emoji { display: block; font-size: 3rem; margin-bottom: 8px; }
 .flavor-card h3 { margin: 0; font: 800 1.24rem/1.35 'M PLUS Rounded 1c', sans-serif; }
+.flavor-plain { background: linear-gradient(160deg, #fffdf8, #f3e5d4); }
 .flavor-lemon { background: linear-gradient(160deg, #fffbe8, #fff3a5); }
 .flavor-chili { background: linear-gradient(160deg, #fff5e9, #ffd0b5); }
 .flavor-cream { background: linear-gradient(160deg, #f7fbff, #dcefff); }

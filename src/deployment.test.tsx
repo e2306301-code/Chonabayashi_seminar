@@ -33,4 +33,17 @@ describe('deployment safeguards', () => {
     expect(rules).toContain('match /sales/{saleId}')
     expect(rules).toMatch(/match \/sales\/\{saleId\}[\s\S]*allow delete: if false;/)
   })
+
+  it('requires order, sale, and slot checkout fields to match', () => {
+    const rules = readFileSync('firestore.rules', 'utf8')
+    expect(rules).toContain('function checkoutFieldsMatch(left, right)')
+    expect(rules.match(/checkoutFieldsMatch\(/g)).toHaveLength(7)
+  })
+
+  it('allows status-only updates for legacy orders without checkout fields', () => {
+    const rules = readFileSync('firestore.rules', 'utf8')
+    expect(rules).toContain(
+      ".hasOnly(['status', 'updatedAt', 'closedAt'])",
+    )
+  })
 })

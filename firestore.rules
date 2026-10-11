@@ -49,6 +49,17 @@ service cloud.firestore {
       return data.paymentMethod in ['cash', 'paypay'];
     }
 
+    function checkoutFieldsMatch(left, right) {
+      return left.checkoutId == right.checkoutId
+        && left.ticketNumber == right.ticketNumber
+        && left.menuDay == right.menuDay
+        && left.items == right.items
+        && left.totalCups == right.totalCups
+        && left.totalPieces == right.totalPieces
+        && left.totalAmount == right.totalAmount
+        && left.paymentMethod == right.paymentMethod;
+    }
+
     match /users/{userId} {
       allow read: if signedIn() && request.auth.uid == userId;
       allow write: if false;
@@ -80,10 +91,14 @@ service cloud.firestore {
         && request.resource.data.items.size() <= 7
         && validTotals(request.resource.data)
         && validPayment(request.resource.data)
-        && getAfter(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.ticketNumber
-          == request.resource.data.ticketNumber
-        && getAfter(/databases/$(database)/documents/sales/$(request.resource.data.checkoutId)).data.ticketNumber
-          == request.resource.data.ticketNumber
+        && checkoutFieldsMatch(
+          request.resource.data,
+          getAfter(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data
+        )
+        && checkoutFieldsMatch(
+          request.resource.data,
+          getAfter(/databases/$(database)/documents/sales/$(request.resource.data.checkoutId)).data
+        )
       );
       allow delete: if false;
     }
@@ -100,20 +115,18 @@ service cloud.firestore {
         && request.resource.data.items.size() <= 7
         && validTotals(request.resource.data)
         && validPayment(request.resource.data)
-        && getAfter(/databases/$(database)/documents/slots/$(request.resource.data.ticketNumber)).data.orderId
-          == orderId
-        && getAfter(/databases/$(database)/documents/sales/$(orderId)).data.orderId
-          == orderId;
+        && checkoutFieldsMatch(
+          request.resource.data,
+          getAfter(/databases/$(database)/documents/slots/$(request.resource.data.ticketNumber)).data
+        )
+        && checkoutFieldsMatch(
+          request.resource.data,
+          getAfter(/databases/$(database)/documents/sales/$(orderId)).data
+        );
       allow update: if isAdmin()
-        && request.resource.data.ticketNumber == resource.data.ticketNumber
-        && request.resource.data.checkoutId == resource.data.checkoutId
-        && request.resource.data.menuDay == resource.data.menuDay
-        && request.resource.data.items == resource.data.items
-        && request.resource.data.totalCups == resource.data.totalCups
-        && request.resource.data.totalPieces == resource.data.totalPieces
-        && request.resource.data.totalAmount == resource.data.totalAmount
-        && request.resource.data.paymentMethod == resource.data.paymentMethod
-        && request.resource.data.status in ['cooking', 'ready', 'completed', 'cancelled'];
+        && request.resource.data.status in ['cooking', 'ready', 'completed', 'cancelled']
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'updatedAt', 'closedAt']);
       allow delete: if isAdmin()
         && resource.data.status in ['completed', 'cancelled'];
     }
@@ -131,10 +144,14 @@ service cloud.firestore {
         && request.resource.data.items.size() <= 8
         && validTotals(request.resource.data)
         && validPayment(request.resource.data)
-        && getAfter(/databases/$(database)/documents/orders/$(saleId)).data.checkoutId
-          == saleId
-        && getAfter(/databases/$(database)/documents/slots/$(request.resource.data.ticketNumber)).data.checkoutId
-          == saleId;
+        && checkoutFieldsMatch(
+          request.resource.data,
+          getAfter(/databases/$(database)/documents/orders/$(saleId)).data
+        )
+        && checkoutFieldsMatch(
+          request.resource.data,
+          getAfter(/databases/$(database)/documents/slots/$(request.resource.data.ticketNumber)).data
+        );
       allow update: if isAdmin()
         && resource.data.status == 'recorded'
         && request.resource.data.status == 'cancelled'

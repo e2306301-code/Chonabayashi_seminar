@@ -56,6 +56,10 @@ export function KioskScreen({ menuDay, slots, onSubmit, onSignOut }: KioskScreen
       !paymentMethod ||
       !checkoutIdRef.current
     ) return
+    if (!navigator.onLine) {
+      setError('インターネットに接続してから再度お試しください')
+      return
+    }
     submittingRef.current = true
     setSubmitting(true)
     setError('')

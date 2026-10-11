@@ -107,4 +107,30 @@ describe('KioskScreen', () => {
     expect(screen.getByRole('button', { name: 'PayPayで支払う' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.queryByText('受付番号')).not.toBeInTheDocument()
   })
+
+  it('does not start registration while the device is offline', async () => {
+    const user = userEvent.setup()
+    const onSubmit = vi.fn()
+    Object.defineProperty(navigator, 'onLine', {
+      configurable: true,
+      value: false,
+    })
+    render(
+      <KioskScreen menuDay="day11" slots={availableSlots} onSubmit={onSubmit} onSignOut={vi.fn()} />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'プレーンを1カップ増やす' }))
+    await user.click(screen.getByRole('button', { name: 'お会計へ' }))
+    await user.click(screen.getByRole('button', { name: '現金で支払う' }))
+    await user.click(screen.getByRole('button', { name: '売上を登録して受付番号を発行' }))
+
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'インターネットに接続してから再度お試しください',
+    )
+    Object.defineProperty(navigator, 'onLine', {
+      configurable: true,
+      value: true,
+    })
+  })
 })

@@ -1,6 +1,7 @@
 import { getFlavor } from '../domain/menu'
 import {
   ORDER_STATUS_LABELS,
+  PAYMENT_METHOD_LABELS,
   type OrderStatus,
   type SlotRecord,
 } from '../firebase/types'
@@ -40,6 +41,9 @@ export function OrderCard({ slot, busy = false, onTransition }: OrderCardProps) 
       </header>
 
       {acceptedTime && <p className="order-card__time">受付 {acceptedTime}</p>}
+      {slot.paymentMethod && (
+        <p className="order-card__payment">{PAYMENT_METHOD_LABELS[slot.paymentMethod]}</p>
+      )}
 
       <ul className="order-items">
         {(slot.items ?? []).map((item) => (

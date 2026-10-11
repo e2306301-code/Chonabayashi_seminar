@@ -6,15 +6,18 @@ import {
   deleteOrderHistory,
   ensureStoreInitialized,
   observeOrderHistory,
+  observeSales,
   observeSlots,
   observeStoreConfig,
   registerCheckout,
+  cancelSale,
   setActiveMenuDay,
   transitionOrder,
 } from './firebase/orderStore'
 import {
   TICKET_NUMBERS,
   type OrderRecord,
+  type SaleRecord,
   type SessionUser,
   type SlotRecord,
 } from './firebase/types'
@@ -32,6 +35,7 @@ export default function App() {
   const [menuDay, setMenuDay] = useState<MenuDay>('day11')
   const [slots, setSlots] = useState<SlotRecord[]>(EMPTY_SLOTS)
   const [history, setHistory] = useState<OrderRecord[]>([])
+  const [sales, setSales] = useState<SaleRecord[]>([])
   const [connectionError, setConnectionError] = useState('')
 
   useEffect(() => {
@@ -66,14 +70,17 @@ export default function App() {
       handleError,
     )
     let unsubscribeHistory: () => void = () => undefined
+    let unsubscribeSales: () => void = () => undefined
     if (user.role === 'admin') {
       void ensureStoreInitialized().catch(handleError)
       unsubscribeHistory = observeOrderHistory(setHistory, handleError)
+      unsubscribeSales = observeSales(setSales, handleError)
     }
     return () => {
       unsubscribeConfig()
       unsubscribeSlots()
       unsubscribeHistory()
+      unsubscribeSales()
     }
   }, [user])
 
@@ -106,9 +113,11 @@ export default function App() {
           menuDay={menuDay}
           slots={slots}
           history={history}
+          sales={sales}
           onMenuDayChange={setActiveMenuDay}
           onTransition={transitionOrder}
           onDeleteHistory={deleteOrderHistory}
+          onCancelSale={cancelSale}
           onSignOut={() => void signOut()}
         />
       ) : (

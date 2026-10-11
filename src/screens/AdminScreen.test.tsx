@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { AdminScreen } from './AdminScreen'
-import type { OrderRecord, SlotRecord } from '../firebase/types'
+import type { OrderRecord, SaleRecord, SlotRecord } from '../firebase/types'
 
 const slots: SlotRecord[] = [
   {
@@ -18,6 +18,7 @@ const slots: SlotRecord[] = [
     totalPieces: 12,
     totalAmount: 900,
     createdAt: { toDate: () => new Date('2026-10-11T01:15:00.000Z') },
+    paymentMethod: 'cash',
   },
   { ticketNumber: 2, state: 'cooking', orderId: 'order-2', items: [], totalCups: 1, totalPieces: 4, totalAmount: 300 },
   { ticketNumber: 3, state: 'ready', orderId: 'order-3', items: [], totalCups: 1, totalPieces: 4, totalAmount: 300 },
@@ -55,6 +56,7 @@ describe('AdminScreen', () => {
     expect(within(firstOrder).getByText('合計 3カップ・12個')).toBeInTheDocument()
     expect(within(firstOrder).getByText('900円')).toBeInTheDocument()
     expect(within(firstOrder).getByText('受付 10:15')).toBeInTheDocument()
+    expect(within(firstOrder).getByText('現金')).toBeInTheDocument()
     expect(screen.getAllByText('空き')).toHaveLength(7)
     expect(screen.getByText('7', { selector: '.admin-summary strong' })).toBeInTheDocument()
   })
@@ -159,8 +161,44 @@ describe('AdminScreen', () => {
     expect(screen.queryByText('1,200円')).not.toBeInTheDocument()
     expect(screen.queryByText('1,500円')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '受付番号1の履歴を削除' }))
-    expect(confirm).toHaveBeenCalledWith('受付番号1の注文履歴を削除しますか？')
+    expect(confirm).toHaveBeenCalledWith('受付番号1の注文履歴を削除しますか？\n売上記録は削除されません。')
     expect(onDeleteHistory).toHaveBeenCalledWith('day11-order')
     confirm.mockRestore()
+  })
+
+  it('opens sales management without changing the active kiosk menu day', async () => {
+    const user = userEvent.setup()
+    const onMenuDayChange = vi.fn()
+    const sales: SaleRecord[] = [{
+      id: 'sale-1',
+      checkoutId: 'sale-1',
+      orderId: 'sale-1',
+      ticketNumber: 1,
+      menuDay: 'day11',
+      items: [{ flavorId: 'plain', cups: 1 }],
+      totalCups: 1,
+      totalPieces: 4,
+      totalAmount: 300,
+      paymentMethod: 'cash',
+      status: 'recorded',
+      recordedAt: null,
+    }]
+    render(
+      <AdminScreen
+        menuDay="day11"
+        slots={slots}
+        sales={sales}
+        onMenuDayChange={onMenuDayChange}
+        onTransition={vi.fn()}
+        onDeleteHistory={vi.fn()}
+        onCancelSale={vi.fn()}
+        onSignOut={vi.fn()}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: '売上管理を表示' }))
+    expect(screen.getByRole('heading', { name: '売上管理', level: 1 })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '10月12日の売上を表示' }))
+    expect(onMenuDayChange).not.toHaveBeenCalled()
   })
 })

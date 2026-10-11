@@ -4,18 +4,22 @@ import {
   MAX_ACTIVE_ORDERS,
   type OrderRecord,
   type OrderStatus,
+  type SaleRecord,
   type SlotRecord,
   type TicketNumber,
 } from '../firebase/types'
 import { OrderCard } from '../components/OrderCard'
+import { SalesDashboard } from '../components/SalesDashboard'
 
 interface AdminScreenProps {
   menuDay: MenuDay
   slots: SlotRecord[]
   history?: OrderRecord[]
+  sales?: SaleRecord[]
   onMenuDayChange: (day: MenuDay) => Promise<void>
   onTransition: (ticketNumber: TicketNumber, status: OrderStatus) => Promise<void>
   onDeleteHistory: (orderId: string) => Promise<void>
+  onCancelSale?: (sale: SaleRecord) => Promise<void>
   onSignOut: () => void
 }
 
@@ -23,14 +27,17 @@ export function AdminScreen({
   menuDay,
   slots,
   history = [],
+  sales = [],
   onMenuDayChange,
   onTransition,
   onDeleteHistory,
+  onCancelSale = async () => undefined,
   onSignOut,
 }: AdminScreenProps) {
   const [busyTickets, setBusyTickets] = useState<Set<TicketNumber>>(new Set())
   const [busyHistoryIds, setBusyHistoryIds] = useState<Set<string>>(new Set())
   const [error, setError] = useState('')
+  const [activeTab, setActiveTab] = useState<'orders' | 'sales'>('orders')
   const activeCount = slots.filter((slot) => slot.state !== 'available').length
   const dailyHistory = history.filter(
     (order) =>
@@ -58,7 +65,7 @@ export function AdminScreen({
   async function handleDeleteHistory(order: OrderRecord) {
     if (
       busyHistoryIds.has(order.id) ||
-      !window.confirm(`受付番号${order.ticketNumber}の注文履歴を削除しますか？`)
+      !window.confirm(`受付番号${order.ticketNumber}の注文履歴を削除しますか？\n売上記録は削除されません。`)
     ) {
       return
     }
@@ -82,10 +89,10 @@ export function AdminScreen({
       <header className="admin-header">
         <div>
           <p className="brand-kicker">ちょなちょナゲット</p>
-          <h1>注文管理</h1>
+          <h1>{activeTab === 'orders' ? '注文管理' : '売上管理'}</h1>
         </div>
         <div className="admin-header__actions">
-          <div className="menu-switcher" aria-label="営業日メニュー">
+          {activeTab === 'orders' && <div className="menu-switcher" aria-label="営業日メニュー">
             {(['day11', 'day12'] as const).map((day) => (
               <button
                 key={day}
@@ -97,10 +104,20 @@ export function AdminScreen({
                 {MENU_DAY_LABELS[day]}
               </button>
             ))}
-          </div>
+          </div>}
           <button type="button" className="text-button" onClick={onSignOut}>ログアウト</button>
         </div>
       </header>
+
+      <nav className="admin-tabs" aria-label="管理画面">
+        <button type="button" className={activeTab === 'orders' ? 'is-active' : ''} aria-label="注文管理を表示" onClick={() => setActiveTab('orders')}>注文管理</button>
+        <button type="button" className={activeTab === 'sales' ? 'is-active' : ''} aria-label="売上管理を表示" onClick={() => setActiveTab('sales')}>売上管理</button>
+      </nav>
+
+      {activeTab === 'sales' ? (
+        <SalesDashboard sales={sales} onCancelSale={onCancelSale} />
+      ) : (
+        <>
 
       <section className="admin-summary">
         <div><strong>{activeCount}</strong><span>受付中</span></div>
@@ -162,6 +179,8 @@ export function AdminScreen({
           </div>
         )}
       </details>
+        </>
+      )}
     </main>
   )
 }

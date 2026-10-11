@@ -5,6 +5,7 @@ dist/
 .firebase/
 firebase-debug.log
 .superpowers/
+.worktrees/
 .DS_Store
 *.tsbuildinfo
 vite.config.js

@@ -3,12 +3,12 @@ import type { MenuDay } from './domain/menu'
 import { signIn, signOut, observeSession } from './firebase/auth'
 import { isFirebaseConfigured } from './firebase/client'
 import {
-  createOrder,
   deleteOrderHistory,
   ensureStoreInitialized,
   observeOrderHistory,
   observeSlots,
   observeStoreConfig,
+  registerCheckout,
   setActiveMenuDay,
   transitionOrder,
 } from './firebase/orderStore'
@@ -115,7 +115,7 @@ export default function App() {
         <KioskScreen
           menuDay={menuDay}
           slots={slots}
-          onSubmit={createOrder}
+          onSubmit={registerCheckout}
           onSignOut={() => void signOut()}
         />
       )}

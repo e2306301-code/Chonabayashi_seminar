@@ -3,14 +3,12 @@ import type { OrderTotals } from '../domain/order'
 interface OrderSummaryProps {
   totals: OrderTotals
   disabled: boolean
-  busy: boolean
   onSubmit: () => void
 }
 
 export function OrderSummary({
   totals,
   disabled,
-  busy,
   onSubmit,
 }: OrderSummaryProps) {
   return (
@@ -23,10 +21,10 @@ export function OrderSummary({
       <button
         type="button"
         className="button button--order"
-        disabled={disabled || busy}
+        disabled={disabled}
         onClick={onSubmit}
       >
-        {busy ? '注文を送信中…' : 'この内容で注文する'}
+        お会計へ
       </button>
     </aside>
   )

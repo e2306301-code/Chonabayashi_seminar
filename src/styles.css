@@ -83,6 +83,23 @@ button { touch-action: manipulation; }
 .ticket-panel__message { font-weight: 800; font-size: 1.2rem; }
 .button--next { width: 100%; margin-top: 18px; }
 
+.checkout-screen { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at 15% 5%, #fff4c3, transparent 36%), #fffaf0; }
+.checkout-panel { width: min(720px, 100%); padding: clamp(24px, 5vw, 44px); border-radius: 30px; background: white; box-shadow: var(--shadow); }
+.checkout-panel h1 { margin: 4px 0; font: 800 clamp(1.7rem, 4vw, 2.5rem)/1.2 'M PLUS Rounded 1c', sans-serif; }
+.checkout-panel__day { margin: 6px 0 24px; color: #8b6947; font-weight: 800; }
+.checkout-items { list-style: none; margin: 0; padding: 0; }
+.checkout-items li { display: flex; justify-content: space-between; gap: 16px; padding: 13px 4px; border-bottom: 1px solid #eee5db; }
+.checkout-totals { display: flex; justify-content: space-between; align-items: end; gap: 18px; margin: 20px 0; font-weight: 800; }
+.checkout-totals strong { color: var(--orange); font-size: 2rem; }
+.payment-methods { margin: 24px 0 18px; padding: 0; border: 0; }
+.payment-methods legend { margin-bottom: 12px; font-weight: 900; }
+.payment-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.payment-methods legend { grid-column: 1 / -1; }
+.payment-methods button { min-height: 84px; border: 2px solid #dfd7cd; border-radius: 18px; background: white; color: var(--brown); font-size: 1.1rem; font-weight: 900; cursor: pointer; }
+.payment-methods button span { margin-right: 8px; font-size: 1.6rem; }
+.payment-methods button.is-selected { border-color: var(--orange); background: #fff2e6; box-shadow: 0 0 0 3px rgba(239, 124, 36, .15); }
+.checkout-back { display: block; width: 100%; margin-top: 10px; }
+
 .admin-shell { background: #f7f4ee; }
 .menu-switcher { display: flex; border-radius: 14px; padding: 4px; background: #eae3d9; }
 .menu-switcher button { border: 0; border-radius: 11px; background: transparent; padding: 10px 14px; font-weight: 800; cursor: pointer; }

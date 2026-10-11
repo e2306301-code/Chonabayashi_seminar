@@ -1,25 +1,28 @@
 import { useMemo, useRef, useState } from 'react'
-import { getMenuForDay, MENU_DAY_LABELS, type FlavorId, type MenuDay } from '../domain/menu'
-import { calculateTotals, MAX_CUPS_PER_ORDER, type OrderDraft } from '../domain/order'
-import { FullCapacityError, type OrderReservation } from '../firebase/orderStore'
-import { MAX_ACTIVE_ORDERS, type SlotRecord } from '../firebase/types'
+import { getFlavor, getMenuForDay, MENU_DAY_LABELS, type FlavorId, type MenuDay } from '../domain/menu'
+import { calculateTotals, MAX_CUPS_PER_ORDER, type CheckoutDraft } from '../domain/order'
+import { FullCapacityError, type CheckoutReservation } from '../firebase/orderStore'
+import { MAX_ACTIVE_ORDERS, PAYMENT_METHOD_LABELS, type PaymentMethod, type SlotRecord } from '../firebase/types'
 import { FlavorCard } from '../components/FlavorCard'
 import { OrderSummary } from '../components/OrderSummary'
 
 interface KioskScreenProps {
   menuDay: MenuDay
   slots: SlotRecord[]
-  onSubmit: (draft: OrderDraft) => Promise<OrderReservation>
+  onSubmit: (draft: CheckoutDraft) => Promise<CheckoutReservation>
   onSignOut: () => void
 }
 
 export function KioskScreen({ menuDay, slots, onSubmit, onSignOut }: KioskScreenProps) {
   const menu = getMenuForDay(menuDay)
   const [quantities, setQuantities] = useState<Partial<Record<FlavorId, number>>>({})
-  const [reservation, setReservation] = useState<OrderReservation | null>(null)
+  const [reservation, setReservation] = useState<CheckoutReservation | null>(null)
+  const [stage, setStage] = useState<'selection' | 'checkout'>('selection')
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const submittingRef = useRef(false)
+  const checkoutIdRef = useRef<string | null>(null)
 
   const items = useMemo(
     () =>
@@ -38,13 +41,31 @@ export function KioskScreen({ menuDay, slots, onSubmit, onSignOut }: KioskScreen
     setError('')
   }
 
+  function startCheckout() {
+    if (totals.totalCups === 0 || isFull) return
+    checkoutIdRef.current ??= crypto.randomUUID()
+    setStage('checkout')
+    setError('')
+  }
+
   async function submitOrder() {
-    if (submittingRef.current || totals.totalCups === 0 || isFull) return
+    if (
+      submittingRef.current ||
+      totals.totalCups === 0 ||
+      isFull ||
+      !paymentMethod ||
+      !checkoutIdRef.current
+    ) return
     submittingRef.current = true
     setSubmitting(true)
     setError('')
     try {
-      setReservation(await onSubmit({ menuDay, items }))
+      setReservation(await onSubmit({
+        checkoutId: checkoutIdRef.current,
+        menuDay,
+        items,
+        paymentMethod,
+      }))
     } catch (cause) {
       setError(
         cause instanceof FullCapacityError
@@ -60,6 +81,9 @@ export function KioskScreen({ menuDay, slots, onSubmit, onSignOut }: KioskScreen
   function nextCustomer() {
     setQuantities({})
     setReservation(null)
+    setStage('selection')
+    setPaymentMethod(null)
+    checkoutIdRef.current = null
     setError('')
   }
 
@@ -77,6 +101,74 @@ export function KioskScreen({ menuDay, slots, onSubmit, onSignOut }: KioskScreen
             次の注文へ
           </button>
         </div>
+      </main>
+    )
+  }
+
+  if (stage === 'checkout') {
+    return (
+      <main className="checkout-screen">
+        <section className="checkout-panel" aria-labelledby="checkout-heading">
+          <p className="brand-kicker">ちょなちょナゲット</p>
+          <h1 id="checkout-heading">注文内容とお支払いの確認</h1>
+          <p className="checkout-panel__day">{MENU_DAY_LABELS[menuDay]}のメニュー</p>
+
+          <ul className="checkout-items">
+            {items.map((item) => (
+              <li key={item.flavorId}>
+                <span>{getFlavor(item.flavorId)?.name ?? item.flavorId}</span>
+                <strong>{item.cups}カップ</strong>
+              </li>
+            ))}
+          </ul>
+
+          <div className="checkout-totals">
+            <span>合計 {totals.totalCups}カップ・{totals.totalPieces}個</span>
+            <strong>{totals.totalAmount.toLocaleString('ja-JP')}円</strong>
+          </div>
+
+          <fieldset className="payment-methods">
+            <legend>お支払い方法を選んでください</legend>
+            {(['cash', 'paypay'] as const).map((method) => (
+              <button
+                key={method}
+                type="button"
+                className={paymentMethod === method ? 'is-selected' : ''}
+                aria-label={`${PAYMENT_METHOD_LABELS[method]}で支払う`}
+                aria-pressed={paymentMethod === method}
+                disabled={submitting}
+                onClick={() => {
+                  setPaymentMethod(method)
+                  setError('')
+                }}
+              >
+                <span aria-hidden="true">{method === 'cash' ? '💴' : '📱'}</span>
+                {PAYMENT_METHOD_LABELS[method]}
+              </button>
+            ))}
+          </fieldset>
+
+          {error && <p className="alert alert--error" role="alert">{error}</p>}
+          <button
+            type="button"
+            className="button button--order button--wide"
+            disabled={!paymentMethod || submitting || isFull}
+            onClick={() => void submitOrder()}
+          >
+            {submitting ? '売上を登録中…' : '売上を登録して受付番号を発行'}
+          </button>
+          <button
+            type="button"
+            className="text-button checkout-back"
+            disabled={submitting}
+            onClick={() => {
+              setStage('selection')
+              setError('')
+            }}
+          >
+            注文内容へ戻る
+          </button>
+        </section>
       </main>
     )
   }
@@ -133,8 +225,7 @@ export function KioskScreen({ menuDay, slots, onSubmit, onSignOut }: KioskScreen
       <OrderSummary
         totals={totals}
         disabled={totals.totalCups === 0 || isFull}
-        busy={submitting}
-        onSubmit={submitOrder}
+        onSubmit={startCheckout}
       />
     </main>
   )

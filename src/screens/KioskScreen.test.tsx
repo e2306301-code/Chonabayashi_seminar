@@ -12,12 +12,7 @@ describe('KioskScreen', () => {
   it('shows daily flavors and updates the order totals with touch controls', async () => {
     const user = userEvent.setup()
     render(
-      <KioskScreen
-        menuDay="day11"
-        slots={availableSlots}
-        onSubmit={vi.fn()}
-        onSignOut={vi.fn()}
-      />,
+      <KioskScreen menuDay="day11" slots={availableSlots} onSubmit={vi.fn()} onSignOut={vi.fn()} />,
     )
 
     expect(screen.getByRole('heading', { name: '味とカップ数を選んでください' })).toBeInTheDocument()
@@ -34,26 +29,31 @@ describe('KioskScreen', () => {
     expect(screen.getByText('900円')).toBeInTheDocument()
   })
 
-  it('submits once, shows the assigned number, and resets for the next customer', async () => {
+  it('reviews the order, requires payment, submits once, and resets for the next customer', async () => {
     const user = userEvent.setup()
-    const onSubmit = vi.fn().mockResolvedValue({
-      orderId: 'order-1',
-      ticketNumber: 1,
-    })
+    const onSubmit = vi.fn().mockResolvedValue({ checkoutId: 'checkout-1', orderId: 'checkout-1', ticketNumber: 1 })
     render(
-      <KioskScreen
-        menuDay="day12"
-        slots={availableSlots}
-        onSubmit={onSubmit}
-        onSignOut={vi.fn()}
-      />,
+      <KioskScreen menuDay="day12" slots={availableSlots} onSubmit={onSubmit} onSignOut={vi.fn()} />,
     )
 
     await user.click(screen.getByRole('button', { name: 'コンソメを1カップ増やす' }))
-    const submit = screen.getByRole('button', { name: 'この内容で注文する' })
-    await Promise.all([user.click(submit), user.click(submit)])
+    await user.click(screen.getByRole('button', { name: 'お会計へ' }))
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(screen.getByRole('heading', { name: '注文内容とお支払いの確認' })).toBeInTheDocument()
+    const register = screen.getByRole('button', { name: '売上を登録して受付番号を発行' })
+    expect(register).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: '現金で支払う' }))
+    expect(register).toBeEnabled()
+    await Promise.all([user.click(register), user.click(register)])
 
     expect(onSubmit).toHaveBeenCalledTimes(1)
+    expect(onSubmit).toHaveBeenCalledWith({
+      checkoutId: expect.any(String),
+      menuDay: 'day12',
+      items: [{ flavorId: 'consomme', cups: 1 }],
+      paymentMethod: 'cash',
+    })
     expect(screen.getByText('受付番号')).toBeInTheDocument()
     expect(screen.getByText('1', { selector: '.ticket-number' })).toBeInTheDocument()
 
@@ -61,46 +61,32 @@ describe('KioskScreen', () => {
     expect(screen.getByText('合計 0カップ')).toBeInTheDocument()
   })
 
+  it('returns from checkout to edit the order before registration', async () => {
+    const user = userEvent.setup()
+    render(
+      <KioskScreen menuDay="day11" slots={availableSlots} onSubmit={vi.fn()} onSignOut={vi.fn()} />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'プレーンを1カップ増やす' }))
+    await user.click(screen.getByRole('button', { name: 'お会計へ' }))
+    await user.click(screen.getByRole('button', { name: '注文内容へ戻る' }))
+    await user.click(screen.getByRole('button', { name: 'プレーンを1カップ増やす' }))
+    expect(screen.getByText('合計 2カップ')).toBeInTheDocument()
+  })
+
   it('stops accepting orders while all ten tickets are active', () => {
     const fullSlots: SlotRecord[] = ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const).map(
       (ticketNumber) => ({ ticketNumber, state: 'received' }),
     )
     render(
-      <KioskScreen
-        menuDay="day11"
-        slots={fullSlots}
-        onSubmit={vi.fn()}
-        onSignOut={vi.fn()}
-      />,
+      <KioskScreen menuDay="day11" slots={fullSlots} onSubmit={vi.fn()} onSignOut={vi.fn()} />,
     )
 
     expect(screen.getByRole('heading', { name: 'ただいま受付上限です' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'この内容で注文する' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'お会計へ' })).toBeDisabled()
   })
 
-  it('keeps accepting orders when five of ten tickets are active', async () => {
-    const user = userEvent.setup()
-    const halfFullSlots: SlotRecord[] = ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const).map(
-      (ticketNumber) => ({
-        ticketNumber,
-        state: ticketNumber <= 5 ? 'received' : 'available',
-      }),
-    )
-    render(
-      <KioskScreen
-        menuDay="day11"
-        slots={halfFullSlots}
-        onSubmit={vi.fn()}
-        onSignOut={vi.fn()}
-      />,
-    )
-
-    expect(screen.getByText('受付できます・空き 5組')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: '塩レモンを1カップ増やす' }))
-    expect(screen.getByRole('button', { name: 'この内容で注文する' })).toBeEnabled()
-  })
-
-  it('keeps the order editable and shows a clear message after a network failure', async () => {
+  it('keeps the checkout and selected payment after a network failure', async () => {
     const user = userEvent.setup()
     render(
       <KioskScreen
@@ -112,11 +98,13 @@ describe('KioskScreen', () => {
     )
 
     await user.click(screen.getByRole('button', { name: '塩レモンを1カップ増やす' }))
-    await user.click(screen.getByRole('button', { name: 'この内容で注文する' }))
+    await user.click(screen.getByRole('button', { name: 'お会計へ' }))
+    await user.click(screen.getByRole('button', { name: 'PayPayで支払う' }))
+    await user.click(screen.getByRole('button', { name: '売上を登録して受付番号を発行' }))
 
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      '通信を確認して、もう一度お試しください',
-    )
-    expect(screen.getByText('合計 1カップ')).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('通信を確認して、もう一度お試しください')
+    expect(screen.getByRole('heading', { name: '注文内容とお支払いの確認' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'PayPayで支払う' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByText('受付番号')).not.toBeInTheDocument()
   })
 })
